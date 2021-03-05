@@ -2,66 +2,8 @@
 
 In order to use Neo4j Connector for Apache Spark in your Java application
 you need to add Spark Packages repository and the dependency.
+Look at xref:quickstart.adoc#_installation_guide[this section] for more information.
 
-== Add the dependency
-=== Maven
-
-[source,xml]
-----
-<project>
-
-    <!-- your POM configuration -->
-    <properties>
-        ...
-        <scala.version><!-- put your spark scala version here --></scala.version>
-        <spark.version><!-- put your spark version here --></spark.version>
-        ...
-    </properties>
-
-    <dependencies>
-      <!-- list of dependencies -->
-      <dependency>
-        <groupId>neo4j-contrib</groupId>
-        <artifactId>neo4j-connector-apache-spark_${scala.version}_${spark.version}</artifactId>
-        <version>4.0.0</version>
-      </dependency>
-    </dependencies>
-
-    <repositories>
-      <!-- list of other repositories -->
-      <repository>
-        <id>SparkPackagesRepo</id>
-        <url>http://dl.bintray.com/spark-packages/maven</url>
-      </repository>
-    </repositories>
-</project>
-----
-
-=== sbt
-
-[source,`build.sbt`]
-----
-resolvers += "Spark Packages Repo" at "http://dl.bintray.com/spark-packages/maven"
-libraryDependencies += "neo4j-contrib" % "neo4j-spark-connector" % "4.0.0"
-----
-
-=== Gradle
-
-[source,`build.gradle`]
-----
-
-dependencies{
-    // list of dependencies
-    compile "neo4j-contrib:neo4j-spark-connector:4.0.0"
-}
-
-repositories {
-    //  list of other repositories
-    sparkPackages {
-        url "http://dl.bintray.com/spark-packages/maven"
-    }
-}
-----
 
 == Code
 

@@ -5,6 +5,96 @@
 
 It's fairly easy to use, although it can be highly customized.
 
+[#_installation_guide]
+== Installation Guide
+
+[#_where_to_get_the_jars]
+=== Where to get the JARs?
+
+You can download the connector JAR from the link:https://neo4j.com/product/connectors/apache-spark-connector/[Neo4j Connector Page] or from the link:https://github.com/neo4j-contrib/neo4j-spark-connector/releases[GitHub releases page].
+
+Choose the version carefully since the wrong combination of Scala version and Spark version will break your code.
+Check xref:overview.adoc#_spark_compatibility[this page] for more info about the proper JAR to use.
+
+=== Using spark-submit, spark-shell or pyspark
+
+[shell]
+----
+$SPARK_HOME/bin/spark-shell --jars neo4j-connector-apache-spark_2.12_3-4.0.1.jar
+----
+
+The connector is also available from link:https://spark-packages.org/?q=neo4j-connector-apache-spark[Spark Packages]:
+
+[shell]
+----
+$SPARK_HOME/bin/spark-shell --packages neo4j-contrib:neo4j-connector-apache-spark_2.12_3:4.0.1
+----
+
+=== Using sbt
+
+If you use the link:https://github.com/databricks/sbt-spark-package[sbt-spark-package plugin], in your sbt build file, add:
+
+[shell]
+----
+scala spDependencies += "neo4j-contrib/neo4j-connector-apache-spark_${scala.version}_${spark.version}:4.0.1"
+----
+
+Otherwise:
+
+[text]
+----
+resolvers += "Spark Packages Repo" at "http://dl.bintray.com/spark-packages/maven"
+libraryDependencies += "neo4j-contrib" % "neo4j-connector-apache-spark_${scala.version}_${spark.version}" % "4.0.1"
+----
+
+=== Using Maven
+
+.pom.xml
+[source,xml]
+----
+<dependencies>
+  <!-- list of dependencies -->
+  <dependency>
+    <groupId>neo4j-contrib</groupId>
+    <artifactId>neo4j-connector-apache-spark_${scala.version}_${spark.version}</artifactId>
+    <version>4.0.1 </version>
+  </dependency>
+</dependencies>
+<repositories>
+  <!-- list of other repositories -->
+  <repository>
+    <id>SparkPackagesRepo</id>
+    <url>http://dl.bintray.com/spark-packages/maven</url>
+  </repository>
+</repositories>
+----
+
+=== Gradle
+
+[source,`build.gradle`]
+----
+
+dependencies{
+    // list of dependencies
+    compile "neo4j-contrib:neo4j-spark-connector:${connector.version}"
+}
+
+repositories {
+    //  list of other repositories
+    sparkPackages {
+        url "http://dl.bintray.com/spark-packages/maven"
+    }
+}
+----
+
+== Using the connector on Databricks
+
+You need to first get the proper JAR for the Databricks Runtime Version, xref:quickstart.adoc#_where_to_get_the_jars[here] you can find where to download the JARs.
+
+Go to your cluster page, select the *Library* tab and install a new library simply by uploading the JAR.
+
+This is it!
+
 == Getting Started
 
 You can read your Neo4j database and have the data available as Spark DataFrame.
