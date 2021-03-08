@@ -15,7 +15,7 @@ jobs:
       matrix:
         python-version: [ 3.6, 3.7, 3.8 ]
         neo4j-version: [ 3.5, 4.0, 4.1, 4.2 ]
-        spark-version: [ {short: 2.4, ext: 2.4.5 }, {short: 3.0, ext: 3.0.1} ]
+        spark-version: [ {short: 2.4, ext: 2.4.5 }, {short: 3, ext: 3.0.1}, {short: 3, ext: 3.1.1} ]
 
     steps:
       - uses: actions/checkout@v2

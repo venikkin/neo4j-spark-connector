@@ -36,29 +36,30 @@ These commands will generate the corresponding targets
 * `spark-2.4/target/neo4j-connector-apache-spark_2.12_2.4-4.0.0.jar`
 
 
-### Building for Spark 3.0
+### Building for Spark 3
 
-You can build for Spark 3.0 by running
+You can build for Spark 3 by running
 
 ```
-./mvnw clean package -P spark-3.0 -P scala-2.12
+./mvnw clean package -P spark-3 -P scala-2.12
 ```
 
-This will generate `spark-3.0/target/neo4j-connector-apache-spark_2.12_3.0-4.0.0.jar`
+This will generate `spark-3/target/neo4j-connector-apache-spark_2.12_3-4.0.0.jar`
+
 
 ## Integration with Apache Spark Applications
 
 **spark-shell, pyspark, or spark-submit**
 
-`$SPARK_HOME/bin/spark-shell --jars neo4j-connector-apache-spark_2.12_3.0-4.0.0.jar`
+`$SPARK_HOME/bin/spark-shell --jars neo4j-connector-apache-spark_2.12_3-4.0.0.jar`
 
-`$SPARK_HOME/bin/spark-shell --packages neo4j-contrib:neo4j-connector-apache-spark_2.12_3.0:4.0.0`
+`$SPARK_HOME/bin/spark-shell --packages neo4j-contrib:neo4j-connector-apache-spark_2.12_3:4.0.0`
 
 **sbt**
 
 If you use the [sbt-spark-package plugin](https://github.com/databricks/sbt-spark-package), in your sbt build file, add:
 
-```scala spDependencies += "neo4j-contrib/neo4j-connector-apache-spark_2.11_3.0:4.0.0"```
+```scala spDependencies += "neo4j-contrib/neo4j-connector-apache-spark_2.11_3:4.0.0"```
 
 Otherwise,
 
@@ -67,11 +68,11 @@ resolvers += "Spark Packages Repo" at "http://dl.bintray.com/spark-packages/mave
 libraryDependencies += "neo4j-contrib" % "neo4j-connector-apache-spark_2.11_2.4" % "4.0.0"
 ```
 
-Or, for Spark 3.0
+Or, for Spark 3
 
 ```scala
 resolvers += "Spark Packages Repo" at "http://dl.bintray.com/spark-packages/maven"
-libraryDependencies += "neo4j-contrib" % "neo4j-connector-apache-spark_2.12_3.0" % "4.0.0"
+libraryDependencies += "neo4j-contrib" % "neo4j-connector-apache-spark_2.12_3" % "4.0.0"
 ```  
 
 **maven**  
@@ -95,14 +96,14 @@ In your pom.xml, add:
 </repositories>
 ```
 
-In case of Spark 3.0
+In case of Spark 3
 
 ```xml
 <dependencies>
   <!-- list of dependencies -->
   <dependency>
     <groupId>neo4j-contrib</groupId>
-    <artifactId>neo4j-connector-apache-spark_2.12_3.0</artifactId>
+    <artifactId>neo4j-connector-apache-spark_2.12_3</artifactId>
     <version>4.0.0</version>
   </dependency>
 </dependencies>

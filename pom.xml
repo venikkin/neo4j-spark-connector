@@ -99,12 +99,12 @@
             </modules>
         </profile>
         <profile>
-            <id>spark-3.0</id>
+            <id>spark-3</id>
             <properties>
-                <spark.version>3.0.1</spark.version>
+                <spark.version>3.1.1</spark.version>
             </properties>
             <modules>
-                <module>spark-3.0</module>
+                <module>spark-3</module>
             </modules>
         </profile>
         <profile>
