@@ -13,3 +13,4 @@ asciidoc:
     url-neo4j-product-gds-lib: https://neo4j.com/product/graph-data-science-library/
     url-gh-spark-notebooks: https://github.com/utnaf/neo4j-connector-apache-spark-notebooks
     url-neo4j-gds-manual: https://neo4j.com/docs/graph-data-science/current/
+    url-aura-kbase-databricks: https://aura.support.neo4j.com/hc/en-us/articles/1500003161121

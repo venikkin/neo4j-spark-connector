@@ -11,12 +11,17 @@ This chapter describes considerations around using Neo4j Connector for Apache Sp
 
 link:https://neo4j.com/cloud/aura/[Neo4j Aura] is a fully managed database as a service providing Neo4j.
 
-== Remote Clients
+== Connecting to Aura
 
-Sometimes there will be remote applications that talk to Neo4j via official drivers, that want to use
-streams functionality.  Best practices in these cases are:
+Connecting to Neo4j Aura is similar to connecting to on-premises Neo4j, but keep in mind:
 
 * Always use a `neo4j+s://` driver URI when communicating with the cluster in the client application.  The optimal
 driver URI will be provided by Aura itself when you create a database
 * In Aura Enterprise consider creating a separate username/password for Spark access; avoid running all processes through the default
 `neo4j` account.
+
+== Connecting to Aura from Spark on Databricks
+
+Aura customers connecting from Databricks may encounter SSL handshake errors due to Databricks' custom Java security settings removing certain cipher support.
+
+See the Aura knowledge base article link:{url-aura-kbase-databricks}[Connecting to Aura with Databricks] for more information and for steps to configure your Databricks cluster to support connections to Aura.

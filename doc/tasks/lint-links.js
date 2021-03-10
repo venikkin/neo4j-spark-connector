@@ -29,7 +29,9 @@ const root = path.join(__dirname, '..')
       'external-check https://twitter.com/neo4j',
       // workaround: not sure why the following links are not resolved properly by hyperlink :/
       'load build/site/developer/spark/quickstart/reading',
-      'load build/site/developer/spark/quickstart/writing'
+      'load build/site/developer/spark/quickstart/writing',
+      // aura kbase returns 403s for hyperlink
+      'external-check https://aura.support.neo4j.com',
     ]
     const skipFilter = (report) => {
       return Object.values(report).some((value) => {
