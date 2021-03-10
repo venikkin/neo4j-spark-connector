@@ -1,19 +1,34 @@
 package org.neo4j.spark.util
 
-import org.apache.spark.sql.SaveMode
+import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.neo4j.driver.Config.TrustStrategy
 import org.neo4j.driver._
 
 import java.io.File
 import java.net.URI
+import java.util
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
 
 
-class Neo4jOptions(private val parameters: java.util.Map[String, String]) extends Serializable {
+class Neo4jOptions(private val options: java.util.Map[String, String]) extends Serializable {
   import Neo4jOptions._
   import QueryType._
+
+  private def parameters: util.Map[String, String] = {
+    val sparkOptions = SparkSession.getActiveSession
+      .map { _.conf
+        .getAll
+        .filterKeys(k => k.startsWith("neo4j."))
+        .map { elem => (elem._1.substring("neo4.".length + 1), elem._2) }
+        .toMap
+      }
+      .getOrElse(Map.empty)
+
+
+    (sparkOptions ++ options.asScala).asJava
+  }
 
   private def getRequiredParameter(parameter: String): String = {
     if (!parameters.containsKey(parameter) || parameters.get(parameter).isEmpty) {

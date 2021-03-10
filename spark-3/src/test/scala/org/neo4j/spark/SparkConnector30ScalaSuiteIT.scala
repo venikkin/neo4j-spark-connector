@@ -10,6 +10,7 @@ import org.junit.runners.Suite
   classOf[DataSourceReaderNeo4j4xTSE],
   classOf[DataSourceWriterNeo4j4xTSE],
   classOf[DataSourceReaderNeo4j35xTSE],
-  classOf[DataSourceWriterTSE]
+  classOf[DataSourceWriterTSE],
+  classOf[DefaultConfigTSE]
 ))
 class SparkConnector30ScalaSuiteIT extends SparkConnectorScalaSuiteIT {}
