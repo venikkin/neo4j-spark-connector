@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>neo4j-spark-connector-docs</artifactId>
-    <version>4.0.0</version>
+    <version>${parent.version}</version>
     <name>neo4j-connector-apache-spark-doc</name>
     <description>Neo4j Connector for Apache Spark - Documentation</description>
 
     <parent>
         <groupId>neo4j-contrib</groupId>
         <artifactId>neo4j-connector-apache-spark</artifactId>
-        <version>4.0.0</version>
+        <version>4.0.1</version>
     </parent>
 
     <properties>
