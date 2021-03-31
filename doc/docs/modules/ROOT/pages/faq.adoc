@@ -83,3 +83,15 @@ and that is the default save mode.
 So please, change the save mode to one of `SaveMode.Append` or `SaveMode.Overwrite`.
 
 We are working to fully support all the Save Mode on Spark 3.
+
+== I'm getting a NoClassDefFoundError or ClassNotFoundException.
+
+If you see this type of error:
+
+----
+NoClassDefFoundError: org/apache/spark/sql/sources/v2/ReadSupport
+Caused by: ClassNotFoundException: org.apache.spark.sql.sources.v2.ReadSupport
+----
+
+This means that your Spark version doesn't match the Spark version on the connector.
+Please refer to xref:overview.adoc#_spark_compatibility[this page] to know which version you need.

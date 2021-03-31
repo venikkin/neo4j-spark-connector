@@ -7,10 +7,12 @@ import org.apache.spark.sql.sources.v2.writer.DataSourceWriter
 import org.apache.spark.sql.sources.v2.{DataSourceOptions, DataSourceV2, ReadSupport, WriteSupport}
 import org.apache.spark.sql.types.StructType
 import org.neo4j.spark.reader.Neo4jDataSourceReader
-import org.neo4j.spark.util.Neo4jOptions
+import org.neo4j.spark.util.{Neo4jOptions, Validations}
 import org.neo4j.spark.writer.Neo4jDataSourceWriter
 
 class DataSource extends DataSourceV2 with ReadSupport with DataSourceRegister with WriteSupport {
+
+  Validations.version("2.4.*")
 
   private val jobId: String = UUID.randomUUID().toString
 

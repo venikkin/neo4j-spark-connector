@@ -8,10 +8,12 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.neo4j.spark.service.SchemaService
 import org.neo4j.spark.util.Validations.validateConnection
-import org.neo4j.spark.util.{DriverCache, Neo4jOptions}
+import org.neo4j.spark.util.{DriverCache, Neo4jOptions, Validations}
 
 class DataSource extends TableProvider
   with DataSourceRegister {
+
+  Validations.version("3.*")
 
   private val jobId: String = UUID.randomUUID().toString
 
