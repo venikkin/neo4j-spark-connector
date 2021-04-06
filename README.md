@@ -32,8 +32,8 @@ You can build for Spark 2.4 with both Scala 2.11 and Scala 2.12
 ```
 
 These commands will generate the corresponding targets
-* `spark-2.4/target/neo4j-connector-apache-spark_2.11_2.4-4.0.0.jar`
-* `spark-2.4/target/neo4j-connector-apache-spark_2.12_2.4-4.0.0.jar`
+* `spark-2.4/target/neo4j-connector-apache-spark_2.11_-4.0.1_for_spark_2.4.jar`
+* `spark-2.4/target/neo4j-connector-apache-spark_2.12_-4.0.1_for_spark_2.4.jar`
 
 
 ### Building for Spark 3
@@ -44,14 +44,14 @@ You can build for Spark 3 by running
 ./mvnw clean package -P spark-3 -P scala-2.12
 ```
 
-This will generate `spark-3/target/neo4j-connector-apache-spark_2.12_3-4.0.0.jar`
+This will generate `spark-3/target/neo4j-connector-apache-spark_2.12-4.0.1_for_spark_3.jar`
 
 
 ## Integration with Apache Spark Applications
 
 **spark-shell, pyspark, or spark-submit**
 
-`$SPARK_HOME/bin/spark-shell --jars neo4j-connector-apache-spark_2.12_3-4.0.0.jar`
+`$SPARK_HOME/bin/spark-shell --jars neo4j-connector-apache-spark_2.12-4.0.1_for_spark_3.jar`
 
 `$SPARK_HOME/bin/spark-shell --packages neo4j-contrib:neo4j-connector-apache-spark_2.12_3:4.0.0`
 
