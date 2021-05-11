@@ -7,12 +7,13 @@ import org.apache.spark.sql.sources.v2.writer.{DataSourceWriter, DataWriterFacto
 import org.apache.spark.sql.types.StructType
 import org.neo4j.driver.AccessMode
 import org.neo4j.spark.service.SchemaService
-import org.neo4j.spark.util.{DriverCache, Neo4jOptions, NodeSaveMode, ValidationUtil, Validations}
+import org.neo4j.spark.util.{DriverCache, Neo4jOptions, Validations}
 
 class Neo4jDataSourceWriter(jobId: String,
                             structType: StructType,
                             saveMode: SaveMode,
-                            options: DataSourceOptions) extends DataSourceWriter {
+                            options: DataSourceOptions)
+  extends DataSourceWriter {
 
   private val optionsMap = options.asMap()
   optionsMap.put(Neo4jOptions.ACCESS_MODE, AccessMode.WRITE.toString)

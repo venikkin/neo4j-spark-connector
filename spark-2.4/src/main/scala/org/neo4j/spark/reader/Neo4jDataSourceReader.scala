@@ -6,7 +6,6 @@ import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition, SupportsPushDownFilters, SupportsPushDownRequiredColumns}
 import org.apache.spark.sql.types.StructType
-import org.neo4j.spark.util.Neo4jOptions
 import org.neo4j.spark.service.SchemaService
 import org.neo4j.spark.util.{DriverCache, Neo4jOptions, Validations}
 

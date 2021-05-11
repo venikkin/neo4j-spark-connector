@@ -151,8 +151,12 @@ class Neo4jReadMappingStrategy(private val options: Neo4jOptions, requiredColumn
   }
 
   private def mapToInternalRow(map: util.Map[String, Any],
-                               schema: StructType) = InternalRow.fromSeq(schema
-    .map(field => Neo4jUtil.convertFromNeo4j(map.get(field.name), field.dataType)))
+                               schema: StructType) = InternalRow
+    .fromSeq(
+      schema.map(
+        field => Neo4jUtil.convertFromNeo4j(map.get(field.name), field.dataType)
+      )
+    )
 
   private def flatRelNodeMapping(node: Node, alias: String): mutable.Map[String, Any] = {
     val nodeMap: mutable.Map[String, Any] = node.asMap().asScala

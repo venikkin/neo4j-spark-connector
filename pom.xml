@@ -53,7 +53,7 @@
         <driver.version>4.2.5</driver.version>
         <spark.version>2.4.5</spark.version>
         <neo4j.experimental>false</neo4j.experimental>
-        <testcontainers.version>1.15.2</testcontainers.version>
+        <testcontainers.version>1.15.3</testcontainers.version>
         <xbean.version>4.10</xbean.version>
         <cypherdsl.version>2020.1.4</cypherdsl.version>
         <node.version>v12.16.0</node.version>
@@ -89,7 +89,7 @@
         <profile>
             <id>spark-2.4</id>
             <properties>
-                <spark.version>2.4.5</spark.version>
+                <spark.version>2.4.7</spark.version>
             </properties>
             <activation>
                 <activeByDefault>true</activeByDefault>

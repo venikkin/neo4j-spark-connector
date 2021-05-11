@@ -2,7 +2,6 @@ package org.neo4j
 
 import java.time.Duration
 import java.util.concurrent.{Callable, TimeUnit}
-
 import org.neo4j.driver.{AuthToken, AuthTokens, GraphDatabase, SessionConfig}
 import org.neo4j.spark.TestUtil
 import org.rnorth.ducttape.unreliables.Unreliables

@@ -22,6 +22,8 @@ abstract class BaseDataWriter(jobId: String,
                               saveMode: SaveMode,
                               options: Neo4jOptions,
                               scriptResult: java.util.List[java.util.Map[String, AnyRef]]) extends Logging {
+  private val STOPPED_THREAD_EXCEPTION_MESSAGE = "Connection to the database terminated. Thread interrupted while committing the transaction"
+
   private val driverCache: DriverCache = new DriverCache(options.connection, jobId)
 
   private var transaction: Transaction = _
@@ -98,15 +100,25 @@ abstract class BaseDataWriter(jobId: String,
       || neo4jTransientException.isInstanceOf[TransientException]
       || neo4jTransientException.isInstanceOf[ServiceUnavailableException])
 
+  /**
+   * df: we check if the thrown exception is STOPPED_THREAD_EXCEPTION. This is the
+   * exception that is thrown when the streaming query is interrupted, we don't want to cause
+   * any error in this case. The transaction are rolled back automatically.
+   */
   private def logAndThrowException(e: Exception): Unit = {
-    if (e.isInstanceOf[ClientException]) {
-      log.error(s"Cannot commit the transaction because: ${e.getMessage}")
+    if(e.isInstanceOf[ServiceUnavailableException] && e.getMessage == STOPPED_THREAD_EXCEPTION_MESSAGE) {
+      logWarning(e.getMessage)
     }
     else {
-      log.error("Cannot commit the transaction because the following exception", e)
-    }
+      if (e.isInstanceOf[ClientException]) {
+        log.error(s"Cannot commit the transaction because: ${e.getMessage}")
+      }
+      else {
+        log.error("Cannot commit the transaction because the following exception", e)
+      }
 
-    throw e
+      throw e
+    }
   }
 
   def commit(): Null = {
