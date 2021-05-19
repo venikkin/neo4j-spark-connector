@@ -22,7 +22,7 @@ class DataSourceStreamingTSE extends SparkConnectorScalaBaseTSE {
   }
 
   @Test
-  def testSinkStreamWithLabelsWithErrorIfExists(): Unit = {
+  def testSinkStreamWithLabelsWithAppend(): Unit = {
     implicit val ctx = ss.sqlContext
     import ss.implicits._
     val memStream = MemoryStream[Int]
@@ -32,7 +32,7 @@ class DataSourceStreamingTSE extends SparkConnectorScalaBaseTSE {
     query = memStream.toDF().writeStream
       .format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
-      .option("save.mode", "ErrorIfExists")
+      .option("save.mode", "Append")
       .option("labels", "Timestamp")
       .option("checkpointLocation", checkpointLocation)
       .option("node.keys", "value")
@@ -66,7 +66,7 @@ class DataSourceStreamingTSE extends SparkConnectorScalaBaseTSE {
   }
 
   @Test
-  def testSinkStreamWithRelationshipWithErrorIfExists(): Unit = {
+  def testSinkStreamWithRelationshipWithAppend(): Unit = {
     implicit val ctx = ss.sqlContext
     import ss.implicits._
     val memStream = MemoryStream[Int]
@@ -77,15 +77,15 @@ class DataSourceStreamingTSE extends SparkConnectorScalaBaseTSE {
     query = memStream.toDF().writeStream
       .format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
-      .option("save.mode", "ErrorIfExists")
+      .option("save.mode", "Append")
       .option("relationship", "PAIRS")
       .option("relationship.save.strategy", "keys")
       .option("relationship.source.labels", ":From")
       .option("relationship.source.node.keys", "value")
-      .option("relationship.source.save.mode", "ErrorIfExists")
+      .option("relationship.source.save.mode", "Append")
       .option("relationship.target.labels", ":To")
       .option("relationship.target.node.keys", "value")
-      .option("relationship.target.save.mode", "ErrorIfExists")
+      .option("relationship.target.save.mode", "Append")
       .option("checkpointLocation", checkpointLocation)
       .start()
 
@@ -149,6 +149,9 @@ class DataSourceStreamingTSE extends SparkConnectorScalaBaseTSE {
           .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
           .option("labels", "MyNewNode")
           .load()
+          .orderBy("the_value")
+
+        dataFrame.show()
 
         val collect = dataFrame.collect()
         val data = if (dataFrame.columns.contains("the_value")) {
@@ -158,7 +161,9 @@ class DataSourceStreamingTSE extends SparkConnectorScalaBaseTSE {
         } else {
           Array.empty[Int]
         }
-        data.toList == (1 to (recordSize * partition)).map(v => v).toList
+        val l1 = data.toList
+        val l2 = (1 to (recordSize * partition)).map(v => v).toList
+        l1 == l2
       } catch {
         case _: Throwable => false
       }
@@ -194,6 +199,8 @@ class DataSourceStreamingTSE extends SparkConnectorScalaBaseTSE {
           .option("labels", "Timestamp")
           .load()
 
+        dataFrame.show()
+
         val collect = dataFrame.collect()
         val data = if (dataFrame.columns.contains("value")) {
           collect
@@ -210,7 +217,7 @@ class DataSourceStreamingTSE extends SparkConnectorScalaBaseTSE {
   }
 
   @Test
-  def testSinkStreamWithRelationshipWithAppend(): Unit = {
+  def testSinkStreamWithRelationshipWithAppendAndOverwrite(): Unit = {
     implicit val ctx = ss.sqlContext
     import ss.implicits._
     val memStream = MemoryStream[Int]

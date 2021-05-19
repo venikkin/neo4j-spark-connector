@@ -29,7 +29,8 @@ class Neo4jTable(schema: StructType, options: java.util.Map[String, String], job
     TableCapability.BATCH_WRITE,
     TableCapability.ACCEPT_ANY_SCHEMA,
     TableCapability.OVERWRITE_BY_FILTER,
-    TableCapability.OVERWRITE_DYNAMIC
+    TableCapability.OVERWRITE_DYNAMIC,
+    TableCapability.STREAMING_WRITE
   ).asJava
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): SimpleScanBuilder = {
@@ -41,6 +42,6 @@ class Neo4jTable(schema: StructType, options: java.util.Map[String, String], job
     val mapOptions = new java.util.HashMap[String, String](options)
     mapOptions.put(Neo4jOptions.ACCESS_MODE, AccessMode.WRITE.toString)
     val writeNeo4jOptions = new Neo4jOptions(mapOptions)
-    new Neo4jWriterBuilder(jobId, info.schema(), SaveMode.Append, writeNeo4jOptions)
+    new Neo4jWriterBuilder(info.queryId(), info.schema(), SaveMode.Append, writeNeo4jOptions)
   }
 }

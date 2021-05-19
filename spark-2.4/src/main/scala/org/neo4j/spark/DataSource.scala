@@ -35,16 +35,10 @@ class DataSource extends DataSourceV2
   override def createWriter(jobId: String,
                             structType: StructType,
                             saveMode: SaveMode,
-                            options: DataSourceOptions): Optional[DataSourceWriter] =
-    if (Neo4jOptions.SUPPORTED_SAVE_MODES.contains(saveMode)) {
-      Optional.of(new Neo4jDataSourceWriter(jobId, structType, saveMode, options))
-    } else {
-      throw new IllegalArgumentException(
-        s"""Unsupported SaveMode.
-           |You provided $saveMode, supported are:
-           |${Neo4jOptions.SUPPORTED_SAVE_MODES.mkString(",")}
-           |""".stripMargin)
-    }
+                            options: DataSourceOptions): Optional[DataSourceWriter] = {
+    Validations.supportedSaveMode(saveMode.toString)
+    Optional.of(new Neo4jDataSourceWriter(jobId, structType, saveMode, options))
+  }
 
   @volatile
   private var streamWriter: Neo4jDataSourceStreamWriter = null
@@ -59,13 +53,7 @@ class DataSource extends DataSourceV2
   override def createStreamWriter(queryId: String, schema: StructType, mode: OutputMode, options: DataSourceOptions): StreamWriter = {
     val streamingSaveMode = options.get(Neo4jOptions.SAVE_MODE)
       .orElse(Neo4jOptions.DEFAULT_SAVE_MODE.toString)
-    if (!Neo4jOptions.SUPPORTED_SAVE_MODES.contains(SaveMode.valueOf(streamingSaveMode))) {
-      throw new IllegalArgumentException(
-        s"""Unsupported StreamingSaveMode.
-           |You provided $streamingSaveMode, supported are:
-           |${Neo4jOptions.SUPPORTED_SAVE_MODES.mkString(",")}
-           |""".stripMargin)
-    }
+    Validations.supportedSaveMode(streamingSaveMode)
     if (isNewInstance(queryId, schema, options)) {
       streamWriter = new Neo4jDataSourceStreamWriter(queryId, schema, options, SaveMode.valueOf(streamingSaveMode))
     }

@@ -22,6 +22,14 @@ object Validations extends Logging {
     )
   }
 
+  def supportedSaveMode(saveMode: String): Unit = {
+    ValidationUtil.isTrue(Neo4jOptions.SUPPORTED_SAVE_MODES.contains(SaveMode.valueOf(saveMode)),
+      s"""Unsupported SaveMode.
+         |You provided $saveMode, supported are:
+         |${Neo4jOptions.SUPPORTED_SAVE_MODES.mkString(",")}
+         |""".stripMargin)
+  }
+
   val writer: (Neo4jOptions, String, SaveMode, Neo4jOptions => Unit) => Unit = { (neo4jOptions, jobId, saveMode, customValidation) =>
     ValidationUtil.isFalse(neo4jOptions.session.accessMode == AccessMode.READ,
       s"Mode READ not supported for Data Source writer")
@@ -168,27 +176,27 @@ object Validations extends Logging {
 
     neo4jOptions.query.queryType match {
       case QueryType.LABELS | QueryType.RELATIONSHIP => {
-        if(neo4jOptions.queryMetadata.queryCount.nonEmpty) {
+        if (neo4jOptions.queryMetadata.queryCount.nonEmpty) {
           ignoreOption(Neo4jOptions.QUERY_COUNT, QueryType.LABELS.toString.toLowerCase)
         }
       }
       case QueryType.QUERY | QueryType.LABELS => {
-        if(neo4jOptions.relationshipMetadata.source.labels.nonEmpty) {
+        if (neo4jOptions.relationshipMetadata.source.labels.nonEmpty) {
           ignoreOption(Neo4jOptions.RELATIONSHIP_SOURCE_LABELS, QueryType.RELATIONSHIP.toString.toLowerCase)
         }
-        if(neo4jOptions.relationshipMetadata.source.nodeProps.nonEmpty) {
+        if (neo4jOptions.relationshipMetadata.source.nodeProps.nonEmpty) {
           ignoreOption(Neo4jOptions.RELATIONSHIP_SOURCE_NODE_PROPS, QueryType.RELATIONSHIP.toString.toLowerCase)
         }
-        if(neo4jOptions.relationshipMetadata.source.nodeKeys.nonEmpty) {
+        if (neo4jOptions.relationshipMetadata.source.nodeKeys.nonEmpty) {
           ignoreOption(Neo4jOptions.RELATIONSHIP_SOURCE_NODE_KEYS, QueryType.RELATIONSHIP.toString.toLowerCase)
         }
-        if(neo4jOptions.relationshipMetadata.target.labels.nonEmpty) {
+        if (neo4jOptions.relationshipMetadata.target.labels.nonEmpty) {
           ignoreOption(Neo4jOptions.RELATIONSHIP_TARGET_LABELS, QueryType.RELATIONSHIP.toString.toLowerCase)
         }
-        if(neo4jOptions.relationshipMetadata.target.nodeProps.nonEmpty) {
+        if (neo4jOptions.relationshipMetadata.target.nodeProps.nonEmpty) {
           ignoreOption(Neo4jOptions.RELATIONSHIP_TARGET_NODE_PROPS, QueryType.RELATIONSHIP.toString.toLowerCase)
         }
-        if(neo4jOptions.relationshipMetadata.target.nodeKeys.nonEmpty) {
+        if (neo4jOptions.relationshipMetadata.target.nodeKeys.nonEmpty) {
           ignoreOption(Neo4jOptions.RELATIONSHIP_TARGET_NODE_KEYS, QueryType.RELATIONSHIP.toString.toLowerCase)
         }
       }
