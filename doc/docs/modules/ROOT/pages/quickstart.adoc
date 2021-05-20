@@ -43,7 +43,6 @@ Otherwise:
 
 [text]
 ----
-resolvers += "Spark Packages Repo" at "http://dl.bintray.com/spark-packages/maven"
 libraryDependencies += "org.neo4j" % "neo4j-connector-apache-spark_${scala.version}" % "4.0.1_for_spark_${spark.version}"
 ----
 
@@ -60,13 +59,6 @@ libraryDependencies += "org.neo4j" % "neo4j-connector-apache-spark_${scala.versi
     <version>4.0.1_for_spark_${spark.version}</version>
   </dependency>
 </dependencies>
-<repositories>
-  <!-- list of other repositories -->
-  <repository>
-    <id>SparkPackagesRepo</id>
-    <url>http://dl.bintray.com/spark-packages/maven</url>
-  </repository>
-</repositories>
 ----
 
 === Gradle
@@ -77,13 +69,6 @@ libraryDependencies += "org.neo4j" % "neo4j-connector-apache-spark_${scala.versi
 dependencies{
     // list of dependencies
     compile "org.neo4j:neo4j-spark-connector:${connector.version}"
-}
-
-repositories {
-    //  list of other repositories
-    sparkPackages {
-        url "http://dl.bintray.com/spark-packages/maven"
-    }
 }
 ----
 
