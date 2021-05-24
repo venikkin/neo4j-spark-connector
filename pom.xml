@@ -187,6 +187,7 @@
                             <goal>add-source</goal>
                             <goal>compile</goal>
                             <goal>testCompile</goal>
+                            <goal>doc-jar</goal>
                         </goals>
                         <phase>process-resources</phase>
                     </execution>
@@ -244,24 +245,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.1.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <sourceFileIncludes>
-                        <include>src/main/scala</include>
-                    </sourceFileIncludes>
-                </configuration>
             </plugin>
         </plugins>
     </build>
