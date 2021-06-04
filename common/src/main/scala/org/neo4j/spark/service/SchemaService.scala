@@ -426,7 +426,9 @@ class SchemaService(private val options: Neo4jOptions, private val driverCache: 
     expectedQueryTypes.size == 0 || expectedQueryTypes.contains(queryType)
   } catch {
     case e: Throwable => {
-      log.error("Query not compiled because of the following exception:", e)
+      if (log.isDebugEnabled) {
+        log.debug("Query not compiled because of the following exception:", e)
+      }
       false
     }
   }
