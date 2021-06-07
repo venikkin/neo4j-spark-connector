@@ -7,6 +7,7 @@ import org.junit.Assert.{assertEquals, assertTrue, fail}
 import org.junit.{Assume, BeforeClass, Test}
 import org.neo4j.driver.summary.ResultSummary
 import org.neo4j.driver.{Result, SessionConfig, Transaction, TransactionWork}
+import scala.collection.JavaConverters._
 
 object DataSourceWriterNeo4j4xTSE {
   @BeforeClass
@@ -572,6 +573,48 @@ class DataSourceWriterNeo4j4xTSE extends SparkConnectorScalaBaseTSE {
       }
       case generic: Throwable => fail(s"should be thrown a ${classOf[SparkException].getName}, got ${generic.getClass} instead")
     }
+  }
+
+  private def getConstraintNameQuery: String = {
+      """CALL db.indexes() YIELD name, labelsOrTypes, properties, uniqueness
+        |WHERE labelsOrTypes = ['Person'] AND properties = ['surname', 'age'] AND uniqueness = 'UNIQUE'
+        |RETURN name
+        |""".stripMargin
+  }
+
+  @Test
+  def `should create constraint with correct name`(): Unit = {
+    val total = 10
+    val ds = (1 to total)
+      .map(i => (i.toString, i * 2))
+      .toDF("surname", "age")
+
+    ds.write
+      .format(classOf[DataSource].getName)
+      .mode(SaveMode.Overwrite)
+      .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
+      .option("labels", ":Person:Customer")
+      .option("node.keys", "surname,age")
+      .option("schema.optimization.type", "NODE_CONSTRAINTS")
+      .save()
+
+    val records = SparkConnectorScalaSuiteIT.session().run(
+      """MATCH (p:Person:Customer)
+        |RETURN p.surname AS surname
+        |""".stripMargin).list().asScala
+      .map(r => r.asMap().asScala)
+      .toSet
+    val expected = ds.collect().map(row => Map("surname" -> row.getAs[String]("surname")))
+      .toSet
+    assertEquals(expected, records)
+
+    val constraintCount = SparkConnectorScalaSuiteIT.session().run(
+      getConstraintNameQuery)
+      .single()
+      .get("name")
+      .asString()
+    assertEquals("spark_NODE_CONSTRAINTS_Person_surname-age", constraintCount)
+    SparkConnectorScalaSuiteIT.session().run("DROP CONSTRAINT `spark_NODE_CONSTRAINTS_Person_surname-age`")
   }
 
 }

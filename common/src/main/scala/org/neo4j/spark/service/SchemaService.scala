@@ -469,6 +469,7 @@ class SchemaService(private val options: Neo4jOptions, private val driverCache: 
         val quotedProps = props
           .map(prop => s"${Neo4jUtil.NODE_ALIAS}.${prop.quote()}")
           .mkString(", ")
+        val dashSeparatedProps = props.mkString("-")
         val (querySuffix, uniqueness) = action match {
           case OptimizationType.INDEX => {
             if (isNeo4j35) {
@@ -490,7 +491,7 @@ class SchemaService(private val options: Neo4jOptions, private val driverCache: 
         val (labelIndexFieldName, uniqueFieldName, actionName) = if (isNeo4j35) {
           ("tokenNames", "type", "")
         } else {
-          ("labelsOrTypes", "uniqueness", s"spark_${action.toString}_$label".quote())
+          ("labelsOrTypes", "uniqueness", s"spark_${action.toString}_${label}_$dashSeparatedProps".quote())
         }
         val queryPrefix = action match {
           case OptimizationType.INDEX => s"CREATE INDEX $actionName"
