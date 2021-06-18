@@ -24,6 +24,7 @@ object SparkConnectorScalaSuiteWithApocIT {
 
   @BeforeClass
   def setUpContainer(): Unit = {
+    Assume.assumeFalse("Neo4j Preview versions doesn't have APOC", TestUtil.experimental())
     if (!server.isRunning) {
       try {
         server.start()
@@ -60,7 +61,7 @@ object SparkConnectorScalaSuiteWithApocIT {
 
   def session(): Session = {
     if (_session == null || !_session.isOpen) {
-      _session = driver.session
+      _session = if (driver != null) driver.session else null
     }
     _session
   }

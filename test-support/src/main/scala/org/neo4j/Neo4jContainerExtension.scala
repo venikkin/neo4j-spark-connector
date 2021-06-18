@@ -7,6 +7,7 @@ import org.neo4j.spark.TestUtil
 import org.rnorth.ducttape.unreliables.Unreliables
 import org.testcontainers.containers.Neo4jContainer
 import org.testcontainers.containers.wait.strategy.{AbstractWaitStrategy, WaitAllStrategy}
+import org.testcontainers.utility.DockerImageName
 
 import collection.JavaConverters._
 
@@ -64,7 +65,9 @@ class DatabasesWaitStrategy(private val auth: AuthToken) extends AbstractWaitStr
 
 // docker pull neo4j/neo4j-experimental:4.0.0-rc01-enterprise
 class Neo4jContainerExtension(imageName: String = s"neo4j${if (TestUtil.experimental()) "/neo4j-experimental" else ""}:${TestUtil.neo4jVersion()}-enterprise")
-  extends Neo4jContainer[Neo4jContainerExtension](imageName) {
+  extends Neo4jContainer[Neo4jContainerExtension](
+    DockerImageName.parse(imageName).asCompatibleSubstituteFor("neo4j")
+  ) {
   private var databases = Seq.empty[String]
 
   def withDatabases(dbs: Seq[String]): Neo4jContainerExtension = {
