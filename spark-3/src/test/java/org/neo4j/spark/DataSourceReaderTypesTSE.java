@@ -6,13 +6,12 @@ import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.junit.Test;
 
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.sql.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
 
@@ -54,12 +53,16 @@ public class DataSourceReaderTypesTSE extends SparkConnectorScalaBaseTSE {
 
     @Test
     public void testReadNodeWithTime() {
-        Dataset<Row> df = initTest("CREATE (p:Person {aTime: localtime({hour:12, minute: 23, second: 0, millisecond: 294})})");
+        TimeZone timezone = TimeZone.getDefault();
+        Dataset<Row> df = initTest("CREATE (p:Person {aTime: time({hour:12, minute: 23, second: 0, millisecond: 294, timezone: '"+timezone.getID()+"'})})");
 
         GenericRowWithSchema result = df.select("aTime").collectAsList().get(0).getAs(0);
 
-        assertEquals("local-time", result.get(0));
-        assertEquals("12:23:00.294", result.get(1));
+        LocalTime localTime = LocalTime.of(12, 23, 0, 294000000);
+        OffsetTime expectedTime = OffsetTime.of(localTime, timezone.toZoneId().getRules().getOffset(Instant.now()));
+
+        assertEquals("offset-time", result.get(0));
+        assertEquals(expectedTime.toString(), result.get(1));
     }
 
     @Test

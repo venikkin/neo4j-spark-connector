@@ -1,15 +1,15 @@
 package org.neo4j.spark
 
 import java.sql.Timestamp
-import java.time.{LocalDateTime, OffsetDateTime, ZoneOffset}
-
+import java.time.{Instant, LocalDateTime, LocalTime, OffsetDateTime, OffsetTime, ZoneOffset}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.junit.Assert._
 import org.junit.Test
 import org.neo4j.driver.summary.ResultSummary
-import org.neo4j.driver.{SessionConfig, Transaction, TransactionWork}
+import org.neo4j.driver.{Transaction, TransactionWork}
 
+import java.util.TimeZone
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -92,12 +92,16 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
 
   @Test
   def testReadNodeWithTime(): Unit = {
+    val timezone = TimeZone.getDefault
     val df: DataFrame = initTest(s"CREATE (p:Person {aTime: time({hour:12, minute: 23, second: 0, millisecond: 294})})")
 
     val result = df.select("aTime").collectAsList().get(0).getAs[GenericRowWithSchema](0)
 
+    val localTime = LocalTime.of(12, 23, 0, 294000000)
+    val expectedTime = OffsetTime.of(localTime, timezone.toZoneId.getRules.getOffset(Instant.now()))
+
     assertEquals("offset-time", result.get(0))
-    assertEquals("12:23:00.294Z", result.get(1))
+    assertEquals(expectedTime.toString, result.get(1))
   }
 
   @Test

@@ -1,9 +1,7 @@
-import pyspark
 from pyspark.sql import SparkSession
 import datetime
 from testcontainers.neo4j import Neo4jContainer
-from pyspark.sql.types import TimestampType, DateType
-from builtins import classmethod
+from tzlocal import get_localzone
 
 import unittest
 import sys
@@ -51,27 +49,26 @@ class SparkTest(unittest.TestCase):
 
         assert True == df.select("boolean").collect()[0].boolean
 
-    # https://neo4j.com/docs/api/python-driver/current/temporal_types.html
     def test_time(self):
-        time = datetime.time(12, 23, 0)
+        time = datetime.time(12, 23, 0, 0, get_localzone())
         df = self.init_test(
-            "CREATE (p:Person {myTime: localtime({hour:12, minute: 23, second: 0})})"
+            "CREATE (p:Person {myTime: time({hour:12, minute: 23, second: 0})})"
         )
 
         timeResult = df.select("myTime").collect()[0].myTime
 
-        assert "local-time" == timeResult.type
-        assert str(time) == timeResult.value
+        assert "offset-time" == timeResult.type
+        # .replace used in case of UTC timezone because of https://stackoverflow.com/a/42777551/1409772
+        assert str(time).replace("+00:00", "Z") \
+            == timeResult.value.split("+")[0]
 
     def test_datetime(self):
-        dtString = "2015-06-24T12:50:35+00:00"
+        dtString = "2015-06-24T12:50:35"
         df = self.init_test(
             "CREATE (p:Person {datetime: datetime('"+dtString+"')})")
 
-        dt = datetime.datetime(
-            2015, 6, 24, 12, 50, 35, 0, datetime.timezone.utc)
-        dtResult = df.select("datetime").collect()[
-            0].datetime.astimezone(datetime.timezone.utc)
+        dt = datetime.datetime(2015, 6, 24, 12, 50, 35, 0)
+        dtResult = df.select("datetime").collect()[0].datetime
 
         assert dt == dtResult
 
@@ -163,30 +160,34 @@ class SparkTest(unittest.TestCase):
 
     def test_time_array(self):
         df = self.init_test(
-            "CREATE (p:Person {result: [localtime({hour:11, minute: 23, second: 0}), localtime({hour:12, minute: 23, second: 0})]})"
+            "CREATE (p:Person {result: [time({hour:11, minute: 23, second: 0}), time({hour:12, minute: 23, second: 0})]})"
         )
 
         timeResult = df.select("result").collect()[0].result
 
-        assert "local-time" == timeResult[0].type
-        assert str(datetime.time(11, 23, 0)) == timeResult[0].value
+        # .replace used in case of UTC timezone because of https://stackoverflow.com/a/42777551/1409772
+        assert "offset-time" == timeResult[0].type
+        assert str(datetime.time(11, 23, 0, 0, get_localzone())).replace("+00:00", "Z") \
+            == timeResult[0].value.split("+")[0]
 
-        assert "local-time" == timeResult[1].type
-        assert str(datetime.time(12, 23, 0)) == timeResult[1].value
+        # .replace used in case of UTC timezone because of https://stackoverflow.com/a/42777551/1409772
+        assert "offset-time" == timeResult[1].type
+        assert str(datetime.time(12, 23, 0, 0, get_localzone())).replace("+00:00", "Z") \
+            == timeResult[1].value.split("+")[0]
 
     def test_datetime_array(self):
         df = self.init_test(
-            "CREATE (p:Person {result: [datetime('2007-12-03T10:15:30+00:00'), datetime('2008-12-03T10:15:30+00:00')]})"
+            "CREATE (p:Person {result: [datetime('2007-12-03T10:15:30'), datetime('2008-12-03T10:15:30')]})"
         )
 
         dt1 = datetime.datetime(
-            2007, 12, 3, 10, 15, 30, 0, datetime.timezone.utc)
+            2007, 12, 3, 10, 15, 30, 0)
         dt2 = datetime.datetime(
-            2008, 12, 3, 10, 15, 30, 0, datetime.timezone.utc)
+            2008, 12, 3, 10, 15, 30, 0)
         dtResult = df.select("result").collect()[0].result
 
-        assert dt1 == dtResult[0].astimezone(datetime.timezone.utc)
-        assert dt2 == dtResult[1].astimezone(datetime.timezone.utc)
+        assert dt1 == dtResult[0]
+        assert dt2 == dtResult[1]
 
     def test_date_array(self):
         df = self.init_test(
@@ -278,23 +279,24 @@ connector_version = str(sys.argv.pop())
 neo4j_version = str(sys.argv.pop())
 scala_version = str(sys.argv.pop())
 spark_version = str(sys.argv.pop())
+current_time_zone = get_localzone().zone
 
-print("Running tests for Connector %s,  Neo4j %s, Scala %s, Spark %s"
-    % (connector_version, neo4j_version, scala_version, spark_version))
+print("Running tests for Connector %s,  Neo4j %s, Scala %s, Spark %s, TimeZone %s"
+      % (connector_version, neo4j_version, scala_version, spark_version, current_time_zone))
 
 
 if __name__ == "__main__":
-    with Neo4jContainer('neo4j:' + neo4j_version) as neo4j_container:
+    with Neo4jContainer('neo4j:' + neo4j_version).with_env("NEO4J_db_temporal_timezone", current_time_zone) as neo4j_container:
         with neo4j_container.get_driver() as neo4j_driver:
             with neo4j_driver.session() as neo4j_session:
                 SparkTest.spark = SparkSession.builder \
                     .appName("Neo4jConnectorTests") \
                     .master('local[*]') \
                     .config(
-                    "spark.jars",
-                    "../../spark-%s/target/neo4j-connector-apache-spark_%s-%s_for_spark_%s.jar" \
-                    % (spark_version, scala_version, connector_version, spark_version)
-                ) \
+                        "spark.jars",
+                        "../../spark-%s/target/neo4j-connector-apache-spark_%s-%s_for_spark_%s.jar"
+                        % (spark_version, scala_version, connector_version, spark_version)
+                    ) \
                     .config("spark.driver.host", "127.0.0.1") \
                     .getOrCreate()
                 SparkTest.neo4_session = neo4j_session
