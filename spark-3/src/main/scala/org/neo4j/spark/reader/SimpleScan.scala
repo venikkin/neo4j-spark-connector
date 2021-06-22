@@ -1,12 +1,14 @@
 package org.neo4j.spark.reader
 
+import org.apache.spark.sql.connector.read.streaming.MicroBatchStream
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan}
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
-import org.neo4j.spark.service.{PartitionSkipLimit, SchemaService}
-import org.neo4j.spark.util.{DriverCache, Neo4jOptions, Neo4jUtil}
+import org.neo4j.spark.service.PartitionSkipLimit
+import org.neo4j.spark.streaming.Neo4jMicroBatchReader
+import org.neo4j.spark.util.{Neo4jOptions, Neo4jUtil}
 
-import scala.collection.JavaConverters.seqAsJavaListConverter
+import java.util.Optional
 
 case class Neo4jPartition(partitionSkipLimit: PartitionSkipLimit) extends InputPartition
 
@@ -45,4 +47,8 @@ class SimpleScan(
   }
 
   override def readSchema(): StructType = schema
+
+  override def toMicroBatchStream(checkpointLocation: String): MicroBatchStream = {
+    new Neo4jMicroBatchReader(Optional.of(schema), neo4jOptions, jobId)
+  }
 }

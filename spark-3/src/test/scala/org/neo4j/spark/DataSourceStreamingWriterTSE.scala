@@ -151,8 +151,6 @@ class DataSourceStreamingWriterTSE extends SparkConnectorScalaBaseTSE {
           .load()
           .orderBy("the_value")
 
-        dataFrame.show()
-
         val collect = dataFrame.collect()
         val data = if (dataFrame.columns.contains("the_value")) {
           collect
@@ -198,8 +196,6 @@ class DataSourceStreamingWriterTSE extends SparkConnectorScalaBaseTSE {
           .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
           .option("labels", "Timestamp")
           .load()
-
-        dataFrame.show()
 
         val collect = dataFrame.collect()
         val data = if (dataFrame.columns.contains("value")) {
@@ -263,7 +259,6 @@ class DataSourceStreamingWriterTSE extends SparkConnectorScalaBaseTSE {
 
         val collect = dataFrame.collect()
         val data = if (dataFrame.columns.contains("source.value") && dataFrame.columns.contains("target.value")) {
-          dataFrame.show()
           collect
             .map(row => (row.getAs[Long]("source.value").toInt, row.getAs[Long]("target.value").toInt))
             .sorted

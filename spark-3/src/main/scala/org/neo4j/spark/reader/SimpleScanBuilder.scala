@@ -3,7 +3,7 @@ package org.neo4j.spark.reader
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownFilters, SupportsPushDownRequiredColumns}
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
-import org.neo4j.spark.util.{Neo4jOptions}
+import org.neo4j.spark.util.Neo4jOptions
 
 class SimpleScanBuilder(neo4jOptions: Neo4jOptions, jobId: String, schema: StructType) extends ScanBuilder
   with SupportsPushDownFilters

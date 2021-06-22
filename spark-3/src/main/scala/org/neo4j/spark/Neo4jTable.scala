@@ -4,6 +4,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.connector.catalog.{SupportsRead, SupportsWrite, Table, TableCapability}
 import org.apache.spark.sql.connector.write.{LogicalWriteInfo, WriteBuilder}
+import org.apache.spark.sql.sources.{StreamSinkProvider, StreamSourceProvider}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.neo4j.driver.AccessMode
@@ -30,7 +31,8 @@ class Neo4jTable(schema: StructType, options: java.util.Map[String, String], job
     TableCapability.ACCEPT_ANY_SCHEMA,
     TableCapability.OVERWRITE_BY_FILTER,
     TableCapability.OVERWRITE_DYNAMIC,
-    TableCapability.STREAMING_WRITE
+    TableCapability.STREAMING_WRITE,
+    TableCapability.MICRO_BATCH_READ
   ).asJava
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): SimpleScanBuilder = {
