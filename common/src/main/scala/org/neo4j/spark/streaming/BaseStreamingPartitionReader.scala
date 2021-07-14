@@ -30,9 +30,8 @@ class BaseStreamingPartitionReader(private val options: Neo4jOptions,
   private val field = filters.find(f => f.getAttribute
       .map(name => name == prop).getOrElse(false))
 
-
   private lazy val values = {
-    val map = new util.HashMap[String, AnyRef](super.getQueryParameters)
+    val map = new util.HashMap[String, Any](super.getQueryParameters)
     val value: Long = field
       .flatMap(f => f.getValue)
       .getOrElse(StreamingFrom.ALL.value())
@@ -57,6 +56,6 @@ class BaseStreamingPartitionReader(private val options: Neo4jOptions,
     OffsetStorage.setLastOffset(jobId, timestamp)
   }
 
-  override protected def getQueryParameters: util.Map[String, AnyRef] = values
+  override protected def getQueryParameters: util.Map[String, Any] = values
 
 }

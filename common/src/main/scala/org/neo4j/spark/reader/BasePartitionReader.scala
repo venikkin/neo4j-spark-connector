@@ -10,14 +10,15 @@ import org.neo4j.spark.util.{DriverCache, Neo4jOptions, Neo4jUtil}
 
 import java.util
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 abstract class BasePartitionReader(private val options: Neo4jOptions,
-                          private val filters: Array[Filter],
-                          private val schema: StructType,
-                          private val jobId: String,
-                          private val partitionSkipLimit: PartitionSkipLimit,
-                          private val scriptResult: java.util.List[java.util.Map[String, AnyRef]],
-                          private val requiredColumns: StructType) extends Logging {
+                                   private val filters: Array[Filter],
+                                   private val schema: StructType,
+                                   private val jobId: String,
+                                   private val partitionSkipLimit: PartitionSkipLimit,
+                                   private val scriptResult: java.util.List[java.util.Map[String, AnyRef]],
+                                   private val requiredColumns: StructType) extends Logging {
   private var result: Iterator[Record] = _
   private var session: Session = _
   private var transaction: Transaction = _
@@ -27,28 +28,33 @@ abstract class BasePartitionReader(private val options: Neo4jOptions,
   private val query: String = new Neo4jQueryService(options, new Neo4jQueryReadStrategy(filters, partitionSkipLimit, requiredColumns.fieldNames))
     .createQuery()
 
-  private val mappingService = new MappingService(new Neo4jReadMappingStrategy(options, requiredColumns), options)
+  private lazy val values = {
+    val params = mutable.HashMap[String, Any]()
+    params.put(Neo4jQueryStrategy.VARIABLE_SCRIPT_RESULT, scriptResult)
+    Neo4jUtil.paramsFromFilters(filters)
+      .foreach(p => params.put(p._1, p._2))
 
-  private lazy val values: util.Map[String, AnyRef] = Map(Neo4jQueryStrategy.VARIABLE_SCRIPT_RESULT -> scriptResult).asJava
-    .asInstanceOf[util.Map[String, AnyRef]]
+    params.asJava
+  }
+
+  private val mappingService = new MappingService(new Neo4jReadMappingStrategy(options, requiredColumns), options)
 
   def next: Boolean = {
     if (result == null) {
       session = driverCache.getOrCreate().session(options.session.toNeo4jSession)
       transaction = session.beginTransaction()
       log.info(s"Running the following query on Neo4j: $query")
-      result = transaction.run(query, Values.value(getQueryParameters))
+
+      val queryParams = getQueryParameters
+      if (log.isDebugEnabled) {
+        log.debug(s"Query Parameters are: $queryParams")
+      }
+
+      result = transaction.run(query, Values.value(queryParams))
         .asScala
     }
 
     result.hasNext
-  }
-
-  protected def getQueryParameters: util.Map[String, AnyRef] = {
-    if (log.isDebugEnabled) {
-      log.debug(s"Query Parameters are: $values")
-    }
-    values
   }
 
   def get: InternalRow = mappingService.convert(result.next(), schema)
@@ -59,4 +65,5 @@ abstract class BasePartitionReader(private val options: Neo4jOptions,
     driverCache.close()
   }
 
+  protected def getQueryParameters: util.Map[String, Any] = values
 }

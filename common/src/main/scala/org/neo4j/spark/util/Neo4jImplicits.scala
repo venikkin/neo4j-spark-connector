@@ -4,8 +4,9 @@ import javax.lang.model.SourceVersion
 import org.apache.spark.sql.types.{DataType, DataTypes, MapType, StructField, StructType}
 import org.neo4j.driver.types.{Entity, Node, Relationship}
 import org.neo4j.spark.service.SchemaService
-import org.apache.spark.sql.sources.{EqualNullSafe, EqualTo, Filter, GreaterThan, GreaterThanOrEqual, In, IsNotNull, IsNull, LessThan, LessThanOrEqual, Not, StringContains, StringEndsWith, StringStartsWith}
+import org.apache.spark.sql.sources.{And, EqualNullSafe, EqualTo, Filter, GreaterThan, GreaterThanOrEqual, In, IsNotNull, IsNull, LessThan, LessThanOrEqual, Not, Or, StringContains, StringEndsWith, StringStartsWith}
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
 object Neo4jImplicits {
@@ -28,6 +29,24 @@ object Neo4jImplicits {
       else {
         str
       }
+    }
+
+    /**
+     * df: we need this to handle scenarios like `WHERE age > 19 and age < 22`,
+     * so we can't basically add a parameter named $age.
+     * So we base64 encode the value to ensure a unique parameter name
+     */
+    def toParameterName(value: Any): String = {
+      val attributeValue = if (value == null) {
+        "NULL"
+      }
+      else {
+        value.toString
+      }
+
+      val base64ed = java.util.Base64.getEncoder.encodeToString(attributeValue.getBytes())
+
+      s"${base64ed}_${str.unquote()}".quote()
     }
   }
 
@@ -75,6 +94,14 @@ object Neo4jImplicits {
   }
 
   implicit class FilterImplicit(filter: Filter) {
+    def flattenFilters: Array[Filter] = {
+      filter match {
+        case or: Or => Array(or.left.flattenFilters, or.right.flattenFilters).flatten
+        case and: And => Array(and.left.flattenFilters, and.right.flattenFilters).flatten
+        case f: Filter => Array(f)
+      }
+    }
+
     def getAttribute: Option[String] = Option(filter match {
       case eqns: EqualNullSafe => eqns.attribute
       case eq: EqualTo => eq.attribute
@@ -112,6 +139,29 @@ object Neo4jImplicits {
     }
 
     def getAttributeWithoutEntityName: Option[String] = filter.getAttribute.map(_.unquote().split('.').tail.mkString("."))
+
+    /**
+     * df: we are not handling AND/OR because they are not actually filters
+     * and have a different internal structure. Before calling this function on the filters
+     * it's highly suggested FilterImplicit::flattenFilter() which returns a collection
+     * of filters, including the one contained in the ANDs/ORs objects.
+     */
+    def getAttributeAndValue: Seq[Any] = {
+      filter match {
+        case f: EqualNullSafe => Seq(f.attribute.toParameterName(f.value), f.value)
+        case f: EqualTo => Seq(f.attribute.toParameterName(f.value), f.value)
+        case f: GreaterThan => Seq(f.attribute.toParameterName(f.value), f.value)
+        case f: GreaterThanOrEqual => Seq(f.attribute.toParameterName(f.value), f.value)
+        case f: LessThan => Seq(f.attribute.toParameterName(f.value), f.value)
+        case f: LessThanOrEqual => Seq(f.attribute.toParameterName(f.value), f.value)
+        case f: In => Seq(f.attribute.toParameterName(f.values), f.values)
+        case f: StringStartsWith => Seq(f.attribute.toParameterName(f.value), f.value)
+        case f: StringEndsWith => Seq(f.attribute.toParameterName(f.value), f.value)
+        case f: StringContains => Seq(f.attribute.toParameterName(f.value), f.value)
+        case f: Not => f.child.getAttributeAndValue
+        case _ => Seq()
+      }
+    }
   }
 
   implicit class StructTypeImplicit(structType: StructType) {

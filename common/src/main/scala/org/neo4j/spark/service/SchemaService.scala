@@ -5,7 +5,7 @@ import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.{DataType, DataTypes, StructField, StructType}
 import org.neo4j.driver.exceptions.ClientException
 import org.neo4j.driver.types.Entity
-import org.neo4j.driver.{Record, Session, Transaction, TransactionWork, Value, summary}
+import org.neo4j.driver.{Record, Session, Transaction, TransactionWork, Value, Values, summary}
 import org.neo4j.spark.service.SchemaService.{cypherToSparkType, normalizedClassName, normalizedClassNameFromGraphEntity}
 import org.neo4j.spark.util.Neo4jImplicits.{CypherImplicits, EntityImplicits}
 import org.neo4j.spark.util._
@@ -252,7 +252,7 @@ class SchemaService(private val options: Neo4jOptions, private val driverCache: 
       queryReadStrategy.createStatementForNodeCount(options)
     }
     log.info(s"Executing the following counting query on Neo4j: $query")
-    session.run(query)
+    session.run(query, Values.value(Neo4jUtil.paramsFromFilters(filters).asJava))
       .list()
       .asScala
       .map(_.get("count"))
