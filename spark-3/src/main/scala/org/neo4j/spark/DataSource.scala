@@ -5,16 +5,14 @@ import org.apache.spark.sql.connector.expressions.Transform
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import org.neo4j.driver.{Driver, Session}
-import org.neo4j.spark.util.Validations.validateConnection
-import org.neo4j.spark.util.{DriverCache, Neo4jOptions, Neo4jUtil, Validations}
+import org.neo4j.spark.util.{Neo4jOptions, Neo4jUtil, ValidateConnection, ValidateSparkVersion, Validations}
 
 import java.util.UUID
 
 class DataSource extends TableProvider
   with DataSourceRegister {
 
-  Validations.version("3.*")
+  Validations.validate(ValidateSparkVersion("3.*"))
 
   private val jobId: String = UUID.randomUUID().toString
 
@@ -24,12 +22,10 @@ class DataSource extends TableProvider
 
   override def supportsExternalMetadata(): Boolean = true
 
-
-
   override def inferSchema(caseInsensitiveStringMap: CaseInsensitiveStringMap): StructType = {
     if (schema == null) {
       val neo4jOpts = getNeo4jOptions(caseInsensitiveStringMap)
-      Neo4jUtil.checkConnection(neo4jOpts, jobId)
+      Validations.validate(ValidateConnection(neo4jOpts, jobId))
       schema = Neo4jUtil.callSchemaService(neo4jOpts, jobId, Array.empty[Filter], { schemaService => schemaService.struct() })
     }
 

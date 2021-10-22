@@ -10,6 +10,7 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import org.neo4j.cypherdsl.core.{Condition, Cypher, Expression, Functions, Property, PropertyContainer}
+import org.neo4j.driver.exceptions.{Neo4jException, ServiceUnavailableException, SessionExpiredException, TransientException}
 import org.neo4j.driver.internal._
 import org.neo4j.driver.types.{Entity, Path}
 import org.neo4j.driver.{Session, Transaction, Value, Values}
@@ -21,9 +22,7 @@ import java.time._
 import java.time.format.DateTimeFormatter
 import java.util.Properties
 import org.neo4j.spark.util.Neo4jImplicits._
-import org.neo4j.spark.util.Validations.validateConnection
 
-import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
 object Neo4jUtil {
@@ -340,26 +339,7 @@ object Neo4jUtil {
     }
   }
 
-  def checkConnection(neo4jOptions: Neo4jOptions, jobId: String): Unit = {
-    var driverCache: DriverCache = null
-    var session: Session = null
-    var hasError = false
-    try {
-      driverCache = new DriverCache(neo4jOptions.connection, jobId)
-      session = driverCache.getOrCreate()
-        .session(neo4jOptions.session.toNeo4jSession())
-      validateConnection(session)
-    } catch {
-      case e: Throwable => {
-        hasError = true
-        throw e
-      }
-    } finally {
-      Neo4jUtil.closeSafety(session)
-      if (hasError) {
-        Neo4jUtil.closeSafety(driverCache)
-      }
-    }
-  }
-
+  def isRetryableException(neo4jTransientException: Neo4jException) = (neo4jTransientException.isInstanceOf[SessionExpiredException]
+    || neo4jTransientException.isInstanceOf[TransientException]
+    || neo4jTransientException.isInstanceOf[ServiceUnavailableException])
 }

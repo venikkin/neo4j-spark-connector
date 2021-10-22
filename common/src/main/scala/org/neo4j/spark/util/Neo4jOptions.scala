@@ -3,10 +3,10 @@ package org.neo4j.spark.util
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.neo4j.driver.Config.TrustStrategy
 import org.neo4j.driver._
-import org.neo4j.spark.util.QueryType.Value
 
 import java.io.File
 import java.net.URI
+import java.time.Duration
 import java.util
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -16,6 +16,8 @@ import scala.collection.JavaConverters._
 class Neo4jOptions(private val options: java.util.Map[String, String]) extends Serializable {
   import Neo4jOptions._
   import QueryType._
+
+  def asMap() = new util.HashMap[String, String](options)
 
   private def parameters: util.Map[String, String] = {
     val sparkOptions = SparkSession.getActiveSession
@@ -87,9 +89,9 @@ class Neo4jOptions(private val options: java.util.Map[String, String]) extends S
     getParameter(ENCRYPTION_ENABLED, DEFAULT_ENCRYPTION_ENABLED.toString).toBoolean,
     Option(getParameter(ENCRYPTION_TRUST_STRATEGY, null)),
     getParameter(ENCRYPTION_CA_CERTIFICATE_PATH, DEFAULT_EMPTY),
-    getParameter(CONNECTION_MAX_LIFETIME_MSECS, DEFAULT_TIMEOUT.toString).toInt,
+    getParameter(CONNECTION_MAX_LIFETIME_MSECS, DEFAULT_CONNECTION_MAX_LIFETIME_MSECS.toString).toInt,
     getParameter(CONNECTION_ACQUISITION_TIMEOUT_MSECS, DEFAULT_TIMEOUT.toString).toInt,
-    getParameter(CONNECTION_LIVENESS_CHECK_TIMEOUT, DEFAULT_TIMEOUT.toString).toInt,
+    getParameter(CONNECTION_LIVENESS_CHECK_TIMEOUT_MSECS, DEFAULT_CONNECTION_LIVENESS_CHECK_TIMEOUT_MSECS.toString).toInt,
     getParameter(CONNECTION_TIMEOUT_MSECS, DEFAULT_TIMEOUT.toString).toInt
   )
 
@@ -100,7 +102,7 @@ class Neo4jOptions(private val options: java.util.Map[String, String]) extends S
 
   val nodeMetadata = initNeo4jNodeMetadata()
 
-  def mapPropsString(str: String): Map[String, String] = str.split(",")
+  private def mapPropsString(str: String): Map[String, String] = str.split(",")
     .map(_.trim)
     .filter(!_.isEmpty)
     .map(s => {
@@ -176,15 +178,12 @@ class Neo4jOptions(private val options: java.util.Map[String, String]) extends S
 
   val partitions = getParameter(PARTITIONS, DEFAULT_PARTITIONS.toString).toInt
 
+  val orderBy = getParameter(ORDER_BY, getParameter(STREAMING_PROPERTY_NAME))
+
   val apocConfig = Neo4jApocConfig(parameters.asScala
     .filterKeys(_.startsWith("apoc."))
     .mapValues(Neo4jUtil.mapper.readValue(_, classOf[java.util.Map[String, AnyRef]]).asScala)
     .toMap)
-
-  def validate(validationFunction: Neo4jOptions => Unit): Neo4jOptions = {
-    validationFunction(this)
-    this
-  }
 
   def getTableName: String = query.queryType match {
     case QueryType.LABELS => s"table_${nodeMetadata.labels.mkString("-")}"
@@ -197,14 +196,16 @@ class Neo4jOptions(private val options: java.util.Map[String, String]) extends S
   val streamingOptions = Neo4jStreamingOptions(getParameter(STREAMING_PROPERTY_NAME),
     StreamingFrom.withCaseInsensitiveName(getParameter(STREAMING_FROM, DEFAULT_STREAMING_FROM.toString)),
     getParameter(STREAMING_QUERY_OFFSET),
-    getParameter(STREAMING_CLEAN_STRUCT_TYPE_STORAGE, DEFAULT_STREAMING_CLEAN_STRUCT_TYPE_STORAGE.toString).toBoolean)
+    getParameter(STREAMING_CLEAN_STRUCT_TYPE_STORAGE, DEFAULT_STREAMING_CLEAN_STRUCT_TYPE_STORAGE.toString).toBoolean,
+    StorageType.withCaseInsensitiveName(getParameter(STREAMING_METADATA_STORAGE, DEFAULT_STREAMING_METADATA_STORAGE.toString)))
 
 }
 
 case class Neo4jStreamingOptions(propertyName: String,
                                  from: StreamingFrom.Value,
                                  queryOffset: String,
-                                 cleanStructTypeStorage: Boolean)
+                                 cleanStructTypeStorage: Boolean,
+                                 storageType: StorageType.Value)
 
 case class Neo4jApocConfig(procedureConfigMap: Map[String, AnyRef])
 
@@ -321,7 +322,7 @@ object Neo4jOptions {
   val ENCRYPTION_TRUST_STRATEGY = "encryption.trust.strategy"
   val ENCRYPTION_CA_CERTIFICATE_PATH = "encryption.ca.certificate.path"
   val CONNECTION_MAX_LIFETIME_MSECS = "connection.max.lifetime.msecs"
-  val CONNECTION_LIVENESS_CHECK_TIMEOUT = "connection.liveness.timeout.msecs"
+  val CONNECTION_LIVENESS_CHECK_TIMEOUT_MSECS = "connection.liveness.timeout.msecs"
   val CONNECTION_ACQUISITION_TIMEOUT_MSECS = "connection.acquisition.timeout.msecs"
   val CONNECTION_TIMEOUT_MSECS = "connection.timeout.msecs"
 
@@ -340,6 +341,9 @@ object Neo4jOptions {
 
   // partitions
   val PARTITIONS = "partitions"
+
+  // orderBy
+  val ORDER_BY = "orderBy"
 
   // Node Metadata
   val NODE_KEYS = "node.keys"
@@ -373,6 +377,7 @@ object Neo4jOptions {
   // Streaming
   val STREAMING_PROPERTY_NAME = "streaming.property.name"
   val STREAMING_FROM = "streaming.from"
+  val STREAMING_METADATA_STORAGE = "streaming.metadata.storage"
   val STREAMING_QUERY_OFFSET = "streaming.query.offset"
   val STREAMING_CLEAN_STRUCT_TYPE_STORAGE = "streaming.clean.struct-type.storage"
 
@@ -401,6 +406,11 @@ object Neo4jOptions {
   val DEFAULT_SAVE_MODE = SaveMode.Overwrite
   val DEFAULT_STREAMING_FROM = StreamingFrom.ALL
   val DEFAULT_STREAMING_CLEAN_STRUCT_TYPE_STORAGE = false
+  val DEFAULT_STREAMING_METADATA_STORAGE = StorageType.SPARK
+
+  // Default values optimizations for Aura please look at: https://aura.support.neo4j.com/hc/en-us/articles/1500002493281-Neo4j-Java-driver-settings-for-Aura
+  val DEFAULT_CONNECTION_MAX_LIFETIME_MSECS = Duration.ofMinutes(8).toMillis
+  val DEFAULT_CONNECTION_LIVENESS_CHECK_TIMEOUT_MSECS = Duration.ofMinutes(2).toMillis
 }
 
 class CaseInsensitiveEnumeration extends Enumeration {
@@ -421,6 +431,10 @@ object StreamingFrom extends CaseInsensitiveEnumeration {
   }
 
   implicit def valToStreamingFromValue(value: Value) = new StreamingFromValue(value)
+}
+
+object StorageType extends CaseInsensitiveEnumeration {
+  val NEO4J, SPARK = Value
 }
 
 object QueryType extends CaseInsensitiveEnumeration {
