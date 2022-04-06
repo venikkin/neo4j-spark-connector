@@ -47,11 +47,8 @@
     </licenses>
 
     <properties>
-        <scala.version>2.12.13</scala.version>
-        <scala.binary.version>2.12</scala.binary.version>
         <neo4j.version>4.0.8</neo4j.version>
         <driver.version>4.4.4</driver.version>
-        <spark.version>2.4.8</spark.version>
         <neo4j.experimental>false</neo4j.experimental>
         <testcontainers.version>1.15.3</testcontainers.version>
         <xbean.version>4.10</xbean.version>
@@ -62,22 +59,13 @@
     </properties>
 
     <profiles>
-        <profile>
-            <id>scala-2.11</id>
-            <properties>
-                <scala.version>2.11.12</scala.version>
-                <scala.binary.version>2.11</scala.binary.version>
-            </properties>
-        </profile>
+        <!-- scala profiles -->
         <profile>
             <id>scala-2.12</id>
             <properties>
                 <scala.version>2.12.13</scala.version>
                 <scala.binary.version>2.12</scala.binary.version>
             </properties>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
         </profile>
         <profile>
             <id>scala-2.13</id>
@@ -87,17 +75,14 @@
             </properties>
         </profile>
         <profile>
-            <id>spark-2.4</id>
+            <id>scala-2.11</id>
             <properties>
-                <spark.version>2.4.8</spark.version>
+                <scala.version>2.11.12</scala.version>
+                <scala.binary.version>2.11</scala.binary.version>
             </properties>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <modules>
-                <module>spark-2.4</module>
-            </modules>
         </profile>
+        <!-- end scala profiles -->
+        <!-- spark profiles -->
         <profile>
             <id>spark-3</id>
             <properties>
@@ -107,6 +92,17 @@
                 <module>spark-3</module>
             </modules>
         </profile>
+        <profile>
+            <id>spark-2.4</id>
+            <properties>
+                <spark.version>2.4.8</spark.version>
+            </properties>
+            <modules>
+                <module>spark-2.4</module>
+            </modules>
+        </profile>
+        <!-- end spark profiles -->
+        <!-- neo4j profiles -->
         <profile>
             <id>neo4j-4.0</id>
             <properties>
@@ -152,6 +148,7 @@
                 <neo4j.experimental>true</neo4j.experimental>
             </properties>
         </profile>
+        <!-- end neo4j profiles -->
     </profiles>
 
     <build>

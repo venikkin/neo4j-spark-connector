@@ -17,10 +17,6 @@
         <version>4.1.1</version>
     </parent>
 
-    <properties>
-        <spark.version>2.4.8</spark.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.neo4j</groupId>
