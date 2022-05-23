@@ -149,11 +149,11 @@ to leverage when reading new data from Neo4j to be sent to the stream.
 Behind the scenes the connector is building a query with a `WHERE` clause that checks for the
 records that have `[timestampProperty] >= currentTimestamp() AND [timestampProperty] IS NOT NULL`.
 
-So it's required that each node has the timestamp property of a Neo4j type (DateTime),
+So it's required that each node has the timestamp property of a Neo4j type (Long),
 and it *must* be not `null`.
 
 [NOTE]
-A property of type string like "2021-08-11" does not work. It needs to be a DateTime of Neo4j type.
+A property of type string like "2021-08-11" does not work. It needs to be a Long of Neo4j type.
 
 The property name can be anything, just remember to set the `streaming.property.name` accordingly.
 
