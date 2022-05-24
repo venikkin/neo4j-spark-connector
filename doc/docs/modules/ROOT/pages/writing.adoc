@@ -66,13 +66,13 @@ For `SaveMode.Overwrite` mode, you *need to have unique constraints on the keys*
 For <<write-rel,Relationship>> type:
 
 * `SaveMode.ErrorIfExists` builds a `CREATE` query.
-* `SaveMode.Append` builds a `MERGE` query.
+* `SaveMode.Overwrite` builds a `MERGE` query.
 
 [IMPORTANT]
-If you are using *Spark 3*, the default save mode *ErrorIfExists* does not work.
+If you are using *Spark 3*, the default save mode *ErrorIfExists* does not work, use *Append* instead.
 
 [NOTE]
-For `SaveMode.Append` mode, you *need to have unique constraints on the keys*.
+For `SaveMode.Overwrite` mode, you *need to have unique constraints on the keys*.
 
 In both cases, the default save mode is `ErrorIfExists`.
 
@@ -373,7 +373,7 @@ SET rel += event.rel
 The `CREATE` keyword for the source and target nodes can be replaced by `MERGE` or `MATCH`.
 To control this you can use the <<node-save-modes,Node save modes>>.
 
-You can set source and target nodes independently by using `relationship.source.save.mode` or ``relationship.target.save.mode`.
+You can set source and target nodes independently by using `relationship.source.save.mode` or `relationship.target.save.mode`.
 
 These options accept a case insensitive string as a value, that can be one of `ErrorIfExists`, `Overwrite`, `Append`;
 they work in the same same way as the <<write-node,Node save modes>>.
