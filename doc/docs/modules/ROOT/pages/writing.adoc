@@ -623,7 +623,6 @@ You can set the optimization via `schema.optimization.type` option that works on
 
 * `INDEX`: it creates only indexes on provided nodes.
 * `NODE_CONSTRAINTS`: it creates only indexes on provided nodes.
-* `QUERY`: it performs a series of schema queries separated by `;`.
 
 
 ==== Index creation
