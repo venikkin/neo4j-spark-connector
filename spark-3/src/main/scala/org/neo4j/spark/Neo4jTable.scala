@@ -4,12 +4,11 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.connector.catalog.{SupportsRead, SupportsWrite, Table, TableCapability}
 import org.apache.spark.sql.connector.write.{LogicalWriteInfo, WriteBuilder}
-import org.apache.spark.sql.sources.{StreamSinkProvider, StreamSourceProvider}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.neo4j.driver.AccessMode
 import org.neo4j.spark.reader.SimpleScanBuilder
-import org.neo4j.spark.util.{Neo4jOptions, ValidateRead, ValidateWrite, Validations}
+import org.neo4j.spark.util.{Neo4jOptions, ValidateRead, Validations}
 import org.neo4j.spark.writer.Neo4jWriterBuilder
 
 import scala.collection.JavaConverters._

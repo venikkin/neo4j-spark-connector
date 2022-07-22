@@ -6,7 +6,7 @@ import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
 import org.neo4j.spark.service.PartitionSkipLimit
 import org.neo4j.spark.streaming.Neo4jMicroBatchReader
-import org.neo4j.spark.util.{Neo4jOptions, Neo4jUtil, StorageType, ValidateRead, ValidateReadNotStreaming, ValidateReadStreaming, Validations}
+import org.neo4j.spark.util.{Neo4jOptions, Neo4jUtil, StorageType, ValidateReadNotStreaming, ValidateReadStreaming, Validations}
 
 import java.util.Optional
 

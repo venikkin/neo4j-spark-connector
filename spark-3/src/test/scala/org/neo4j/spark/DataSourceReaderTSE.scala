@@ -23,6 +23,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
         .load()
         .show() // we need the action to be able to trigger the exception because of the changes in Spark 3
+      org.junit.Assert.fail("Expected to throw an exception")
     } catch {
       case e: IllegalArgumentException =>
         assertEquals("No valid option found. One of `query`, `labels`, `relationship` is required", e.getMessage)
@@ -39,6 +40,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("relationship", "KNOWS")
         .load()
         .show()  // we need the action to be able to trigger the exception because of the changes in Spark 3
+      org.junit.Assert.fail("Expected to throw an exception")
     } catch {
       case e: IllegalArgumentException =>
         assertEquals("You need to specify just one of these options: 'labels', 'query', 'relationship'", e.getMessage)
@@ -56,6 +58,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("query", "MATCH (n) RETURN n")
         .load()
         .show()  // we need the action to be able to trigger the exception because of the changes in Spark 3
+      org.junit.Assert.fail("Expected to throw an exception")
     } catch {
       case e: IllegalArgumentException =>
         assertEquals("You need to specify just one of these options: 'labels', 'query', 'relationship'", e.getMessage)
@@ -1140,6 +1143,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("query", "CREATE (p:Person)")
         .load()
         .show()  // we need the action to be able to trigger the exception because of the changes in Spark 3
+      org.junit.Assert.fail("Expected to throw an exception")
     } catch {
       case iae: IllegalArgumentException => {
         assertTrue(iae.getMessage.endsWith("Please provide a valid READ query"))
@@ -1271,6 +1275,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("query.count", 2)
         .load()
         .show()  // we need the action to be able to trigger the exception because of the changes in Spark 3
+      org.junit.Assert.fail("Expected to throw an exception")
     }
     catch {
       case iae: IllegalArgumentException => {
@@ -1291,6 +1296,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("query.count", 2)
         .load()
         .show()  // we need the action to be able to trigger the exception because of the changes in Spark 3
+      org.junit.Assert.fail("Expected to throw an exception")
     }
     catch {
       case iae: IllegalArgumentException => {
@@ -1311,6 +1317,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("query.count", 2)
         .load()
         .show() // we need the action to be able to trigger the exception because of the changes in Spark 3
+      org.junit.Assert.fail("Expected to throw an exception")
     }
     catch {
       case iae: IllegalArgumentException => {
@@ -1333,12 +1340,16 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("query.count", 2)
         .load()
         .show() // we need the action to be able to trigger the exception because of the changes in Spark 3
+      org.junit.Assert.fail("Expected to throw an exception")
     }
     catch {
       case iae: IllegalArgumentException => {
         assertTrue(iae.getMessage.equals("SKIP/LIMIT are not allowed at the end of the query"))
       }
-      case _: Throwable => fail(s"should be thrown a ${classOf[IllegalArgumentException].getName}")
+      case t: Throwable => {
+        t.printStackTrace()
+        fail(s"should be thrown a ${classOf[IllegalArgumentException].getName}")
+      }
     }
   }
 

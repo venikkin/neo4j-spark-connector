@@ -21,6 +21,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       ss.read.format(classOf[DataSource].getName)
         .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
         .load()
+      org.junit.Assert.fail("Expected to throw an exception")
     } catch {
       case e: IllegalArgumentException =>
         assertEquals("No valid option found. One of `query`, `labels`, `relationship` is required", e.getMessage)
@@ -36,6 +37,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("labels", "Person")
         .option("relationship", "KNOWS")
         .load()
+      org.junit.Assert.fail("Expected to throw an exception")
     } catch {
       case e: IllegalArgumentException =>
         assertEquals("You need to specify just one of these options: 'labels', 'query', 'relationship'", e.getMessage)
@@ -52,6 +54,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("relationship", "KNOWS")
         .option("query", "MATCH (n) RETURN n")
         .load()
+      org.junit.Assert.fail("Expected to throw an exception")
     } catch {
       case e: IllegalArgumentException =>
         assertEquals("You need to specify just one of these options: 'labels', 'query', 'relationship'", e.getMessage)
@@ -1119,6 +1122,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
         .option("query", "CREATE (p:Person)")
         .load()
+      org.junit.Assert.fail("Expected to throw an exception")
     } catch {
       case iae: IllegalArgumentException => {
         assertTrue(iae.getMessage.endsWith("Please provide a valid READ query"))
@@ -1251,7 +1255,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("query.count", 2)
         .load
         .show()
-      fail("no error thrown")
+      org.junit.Assert.fail("Expected to throw an exception")
     }
     catch {
       case iae: IllegalArgumentException => {
@@ -1272,7 +1276,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("query.count", 2)
         .load
         .show()
-      fail("no error thrown")
+      org.junit.Assert.fail("Expected to throw an exception")
     }
     catch {
       case iae: IllegalArgumentException => {
@@ -1293,7 +1297,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("query.count", 2)
         .load
         .show()
-      fail("no error thrown")
+      org.junit.Assert.fail("Expected to throw an exception")
     }
     catch {
       case iae: IllegalArgumentException => {
@@ -1316,7 +1320,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("query.count", 2)
         .load
         .show()
-      fail("no error thrown")
+      org.junit.Assert.fail("Expected to throw an exception")
     }
     catch {
       case iae: IllegalArgumentException => {
