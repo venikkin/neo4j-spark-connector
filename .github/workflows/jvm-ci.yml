@@ -3,10 +3,10 @@ name: JVM CI with Maven
 on:
   push:
     branches:
-      - '4.1'
+      - '4.2'
   pull_request:
     branches:
-      - '4.1'
+      - '4.2'
 
 jobs:
   build:
@@ -14,9 +14,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scala-version: [2.11, 2.12, 2.13]
-        spark-version: ["2.4", "3"]
-        neo4j-version: ["3.5", "4.0", "4.1", "4.2", "4.3", "4.4"]
+        scala-version: [2.12, 2.13]
+        spark-version: ["3"]
+        neo4j-version: ["4.4"]
     name: Build with Scala ${{ matrix.scala-version }}, Spark ${{ matrix.spark-version }} and Neo4j ${{ matrix.neo4j-version }}
     steps:
       - uses: actions/checkout@v2
