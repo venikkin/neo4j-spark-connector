@@ -5,12 +5,12 @@ on:
     paths:
       - 'doc/*'
     branches:
-      - '4.2'
+      - '5.0'
   pull_request:
     paths:
       - 'doc/*'
     branches:
-      - '4.2'
+      - '5.0'
 
 jobs:
   build:

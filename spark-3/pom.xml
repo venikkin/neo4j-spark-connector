@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-connector-apache-spark</artifactId>
-        <version>4.2.0</version>
+        <version>5.0.0</version>
     </parent>
 
     <dependencies>

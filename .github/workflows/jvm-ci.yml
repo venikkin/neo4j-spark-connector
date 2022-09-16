@@ -3,10 +3,10 @@ name: JVM CI with Maven
 on:
   push:
     branches:
-      - '4.2'
+      - '5.0'
   pull_request:
     branches:
-      - '4.2'
+      - '5.0'
 
 jobs:
   build:
