@@ -6,7 +6,7 @@ site:
 content:
   sources:
     - url: ../
-      branches: ['5.0', '4.1', '4.0']
+      branches: ['5.0', '4.2', '4.1', '4.0']
       start_path: doc/docs
       edit_url: https://github.com/neo4j-contrib/neo4j-spark-connector/tree/{refname}/{path}
       exclude:
