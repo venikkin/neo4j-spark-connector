@@ -211,24 +211,13 @@ object Neo4jUtil {
       val map: Map[String, AnyRef] = (0 to unsafeMapData.numElements() - 1)
         .map(i => (unsafeMapData.keyArray().getUTF8String(i).toString, unsafeMapData.valueArray().get(i, mapType.valueType)))
         .toMap[String, AnyRef]
-        .mapValues(innerValue => convertFromSpark(innerValue))
+        .mapValues(innerValue => convertFromSpark(innerValue, StructField("", mapType.valueType, true)))
         .toMap[String, AnyRef]
       Values.value(map.asJava)
     }
     case string: UTF8String => convertFromSpark(string.toString)
     case _ => Values.value(value)
   }
-
-  def flattenMap(map: java.util.Map[String, AnyRef],
-                 prefix: String = ""): java.util.Map[String, AnyRef] = map.asScala.flatMap(t => {
-    val key: String = if (prefix != "") s"${prefix.quote()}.${t._1.quote()}" else t._1.quote()
-    t._2 match {
-      case nestedMap: Map[String, AnyRef] => flattenMap(nestedMap.asJava, key).asScala.toSeq
-      case _ => Seq((key, t._2))
-    }
-  })
-    .toMap
-    .asJava
 
   def isLong(str: String): Boolean = {
     if (str == null) {

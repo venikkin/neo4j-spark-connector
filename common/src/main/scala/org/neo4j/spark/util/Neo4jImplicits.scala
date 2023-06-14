@@ -1,5 +1,6 @@
 package org.neo4j.spark.util
 
+import org.apache.logging.log4j.{LogManager, Logger}
 import org.apache.spark.sql.connector.expressions.Expression
 import org.apache.spark.sql.connector.expressions.aggregate.Aggregation
 import org.apache.spark.sql.sources.{And, EqualNullSafe, EqualTo, Filter, GreaterThan, GreaterThanOrEqual, In, IsNotNull, IsNull, LessThan, LessThanOrEqual, Not, Or, StringContains, StringEndsWith, StringStartsWith}
@@ -196,6 +197,37 @@ object Neo4jImplicits {
 
   implicit class AggregationImplicit(aggregation: Aggregation) {
     def groupByCols(): Array[Expression] = ReflectionUtils.groupByCols(aggregation)
+  }
+
+  implicit class MapImplicit[K, V](map: Map[String, V]) {
+
+    private def innerFlattenMap(map: Map[String, _], prefix: String): Seq[(String, AnyRef)] = map
+      .toSeq
+      .flatMap(t => {
+        val key: String = if (prefix != "") s"$prefix.${t._1}" else t._1
+        t._2 match {
+          case nestedMap: Map[String, _] => innerFlattenMap(nestedMap, key)
+          case nestedMap: java.util.Map[String, _] => innerFlattenMap(nestedMap.asScala.toMap, key)
+          case _ => Seq((key, t._2.asInstanceOf[AnyRef]))
+        }
+      })
+      .toList
+
+    def flattenMap(prefix: String = "", groupDuplicateKeys: Boolean = false): Map[String, AnyRef] = innerFlattenMap(map, prefix)
+      .groupBy(_._1)
+      .mapValues(seq => if (groupDuplicateKeys && seq.size > 1) seq.map(_._2).asJava else seq.last._2)
+      .toMap
+
+    def flattenKeys(prefix: String = ""): Seq[String] = map
+      .flatMap(t => {
+        val key: String = if (prefix != "") s"$prefix.${t._1}" else t._1
+        t._2 match {
+          case nestedMap: Map[String, _] => nestedMap.flattenKeys(key)
+          case nestedMap: java.util.Map[String, _] => nestedMap.asScala.toMap.flattenKeys(key)
+          case _ => Seq(key)
+        }
+      })
+      .toList
   }
 
 }

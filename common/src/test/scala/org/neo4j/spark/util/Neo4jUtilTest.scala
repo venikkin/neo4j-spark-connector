@@ -1,6 +1,8 @@
 package org.neo4j.spark.util
 
-import org.junit.Test
+import org.junit.{Assert, Test}
+
+import scala.collection.JavaConverters.mapAsJavaMapConverter
 
 class Neo4jUtilTest {
 
@@ -8,4 +10,5 @@ class Neo4jUtilTest {
   def testSafetyCloseShouldNotFailWithNull(): Unit = {
     Neo4jUtil.closeSafety(null)
   }
+
 }
