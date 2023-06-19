@@ -1,12 +1,14 @@
 package org.neo4j.spark.util
 
-import org.apache.logging.log4j.{LogManager, Logger}
-import org.apache.spark.sql.connector.expressions.Expression
 import org.apache.spark.sql.connector.expressions.aggregate.Aggregation
-import org.apache.spark.sql.sources.{And, EqualNullSafe, EqualTo, Filter, GreaterThan, GreaterThanOrEqual, In, IsNotNull, IsNull, LessThan, LessThanOrEqual, Not, Or, StringContains, StringEndsWith, StringStartsWith}
+import org.apache.spark.sql.connector.expressions.filter.Predicate
+import org.apache.spark.sql.connector.expressions.{Expression, Literal, filter}
+import org.apache.spark.sql.sources.{AlwaysFalse, AlwaysTrue, And, EqualNullSafe, EqualTo, Filter, GreaterThan, GreaterThanOrEqual, In, IsNotNull, IsNull, LessThan, LessThanOrEqual, Not, Or, StringContains, StringEndsWith, StringStartsWith}
 import org.apache.spark.sql.types.{DataTypes, MapType, StructField, StructType}
+import org.neo4j.driver.Value
 import org.neo4j.driver.types.{Entity, Node, Relationship}
 import org.neo4j.spark.service.SchemaService
+import org.neo4j.spark.util.Neo4jUtil.convertFromSpark
 
 import javax.lang.model.SourceVersion
 import scala.collection.JavaConverters._
@@ -53,7 +55,7 @@ object Neo4jImplicits {
   }
 
   implicit class EntityImplicits(entity: Entity) {
-    def toStruct(): StructType = {
+    def toStruct: StructType = {
       val fields = entity.asMap().asScala
         .groupBy(_._1)
         .map(t => {
@@ -62,22 +64,22 @@ object Neo4jImplicits {
           StructField(t._1, SchemaService.cypherToSparkType(cypherType))
         })
       val entityFields = entity match {
-        case node: Node => {
+        case _: Node => {
           Seq(StructField(Neo4jUtil.INTERNAL_ID_FIELD, DataTypes.LongType, nullable = false),
             StructField(Neo4jUtil.INTERNAL_LABELS_FIELD, DataTypes.createArrayType(DataTypes.StringType), nullable = true))
         }
-        case relationship: Relationship => {
-          Seq(StructField(Neo4jUtil.INTERNAL_REL_ID_FIELD, DataTypes.LongType, false),
-            StructField(Neo4jUtil.INTERNAL_REL_TYPE_FIELD, DataTypes.StringType, false),
-            StructField(Neo4jUtil.INTERNAL_REL_SOURCE_ID_FIELD, DataTypes.LongType, false),
-            StructField(Neo4jUtil.INTERNAL_REL_TARGET_ID_FIELD, DataTypes.LongType, false))
+        case _: Relationship => {
+          Seq(StructField(Neo4jUtil.INTERNAL_REL_ID_FIELD, DataTypes.LongType, nullable = false),
+            StructField(Neo4jUtil.INTERNAL_REL_TYPE_FIELD, DataTypes.StringType, nullable = false),
+            StructField(Neo4jUtil.INTERNAL_REL_SOURCE_ID_FIELD, DataTypes.LongType, nullable = false),
+            StructField(Neo4jUtil.INTERNAL_REL_TARGET_ID_FIELD, DataTypes.LongType, nullable = false))
         }
       }
 
       StructType(entityFields ++ fields)
     }
 
-    def toMap(): java.util.Map[String, Any] = {
+    def toMap: java.util.Map[String, Any] = {
       val entityMap = entity.asMap().asScala
       val entityFields = entity match {
         case node: Node => {
@@ -92,6 +94,65 @@ object Neo4jImplicits {
         }
       }
       (entityFields ++ entityMap).asJava
+    }
+  }
+
+  implicit class PredicateImplicit(predicate: Predicate) {
+
+    def toFilter: Option[Filter] = {
+      predicate.name() match {
+        case "IS_NULL" => Some(IsNull(predicate.rawAttributeName()))
+        case "IS_NOT_NULL" => Some(IsNotNull(predicate.rawAttributeName()))
+        case "STARTS_WITH" => predicate.rawLiteralValue().map(lit => StringStartsWith(predicate.rawAttributeName(), lit.asString()))
+        case "ENDS_WITH" => predicate.rawLiteralValue().map(lit => StringEndsWith(predicate.rawAttributeName(), lit.asString()))
+        case "CONTAINS" => predicate.rawLiteralValue().map(lit => StringContains(predicate.rawAttributeName(), lit.asString()))
+        case "IN" => Some(In(predicate.rawAttributeName(), predicate.rawLiteralValues()))
+        case "=" => predicate.rawLiteralValue().map(lit => EqualTo(predicate.rawAttributeName(), lit.asObject()))
+        case "<>" => predicate.rawLiteralValue().map(lit => Not(EqualTo(predicate.rawAttributeName(), lit.asObject())))
+        case "<=>" => predicate.rawLiteralValue().map(lit => EqualNullSafe(predicate.rawAttributeName(), lit.asObject()))
+        case "<" => predicate.rawLiteralValue().map(lit => LessThan(predicate.rawAttributeName(), lit.asObject()))
+        case "<=" => predicate.rawLiteralValue().map(lit => LessThanOrEqual(predicate.rawAttributeName(), lit.asObject()))
+        case ">" => predicate.rawLiteralValue().map(lit => GreaterThan(predicate.rawAttributeName(), lit.asObject()))
+        case ">=" => predicate.rawLiteralValue().map(lit => GreaterThanOrEqual(predicate.rawAttributeName(), lit.asObject()))
+        case "AND" =>
+          val andPredicate = predicate.asInstanceOf[filter.And]
+          (andPredicate.left().toFilter, andPredicate.right().toFilter) match {
+            case (_, None) => None
+            case (None, _) => None
+            case (Some(left), Some(right)) => Some(And(left, right))
+          }
+        case "OR" =>
+          val andPredicate = predicate.asInstanceOf[filter.Or]
+          (andPredicate.left().toFilter, andPredicate.right().toFilter) match {
+            case (_, None) => None
+            case (None, _) => None
+            case (Some(left), Some(right)) => Some(Or(left, right))
+          }
+        case "NOT" =>
+          val notPredicate = predicate.asInstanceOf[filter.Not]
+          notPredicate.child().toFilter.map(Not)
+        case "ALWAYS_TRUE" => Some(AlwaysTrue)
+        case "ALWAYS_FALSE" => Some(AlwaysFalse)
+      }
+    }
+
+    def rawAttributeName(): String = {
+      predicate.references().head.fieldNames().mkString(".")
+    }
+
+    def rawLiteralValue(): Option[Value] = {
+      predicate.children()
+        .filter(_.isInstanceOf[Literal[_]])
+        .map(_.asInstanceOf[Literal[_]])
+        .headOption
+        .map(literal => convertFromSpark(literal.value(), literal.dataType()))
+    }
+
+    def rawLiteralValues(): Array[Any] = {
+      predicate.children()
+        .filter(_.isInstanceOf[Literal[_]])
+        .map(_.asInstanceOf[Literal[_]])
+        .map(v => convertFromSpark(v.value(), v.dataType()).asObject())
     }
   }
 
