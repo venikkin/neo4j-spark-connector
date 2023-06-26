@@ -21,8 +21,6 @@ import org.slf4j.Logger
 import java.time._
 import java.time.format.DateTimeFormatter
 import java.util.Properties
-import org.neo4j.spark.util.Neo4jImplicits._
-
 import scala.collection.JavaConverters._
 
 object Neo4jUtil {
@@ -43,7 +41,7 @@ object Neo4jUtil {
   val RELATIONSHIP_ALIAS = "rel"
 
   private val properties = new Properties()
-  properties.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("neo4j-spark-connector.properties"))
+  properties.load(Thread.currentThread().getContextClassLoader.getResourceAsStream("neo4j-spark-connector.properties"))
 
   def closeSafety(autoCloseable: AutoCloseable, logger: Logger = null): Unit = {
     try {
@@ -269,9 +267,7 @@ object Neo4jUtil {
         val parameter = valueToCypherExpression(eqns.attribute, eqns.value)
         val property = getCorrectProperty(container, attributeAlias.getOrElse(eqns.attribute))
         property.isNull.and(parameter.isNull)
-          .or(
-            property.isEqualTo(parameter)
-          )
+          .or(property.isEqualTo(parameter))
       case eq: EqualTo =>
         getCorrectProperty(container, attributeAlias.getOrElse(eq.attribute))
           .isEqualTo(valueToCypherExpression(eq.attribute, eq.value))
@@ -306,7 +302,7 @@ object Neo4jUtil {
     }
   }
 
-  def getStreamingPropertyName(options: Neo4jOptions) = options.query.queryType match {
+  def getStreamingPropertyName(options: Neo4jOptions): String = options.query.queryType match {
     case QueryType.RELATIONSHIP => s"rel.${options.streamingOptions.propertyName}"
     case _ => options.streamingOptions.propertyName
   }
@@ -336,4 +332,5 @@ object Neo4jUtil {
   def isRetryableException(neo4jTransientException: Neo4jException) = (neo4jTransientException.isInstanceOf[SessionExpiredException]
     || neo4jTransientException.isInstanceOf[TransientException]
     || neo4jTransientException.isInstanceOf[ServiceUnavailableException])
+
 }

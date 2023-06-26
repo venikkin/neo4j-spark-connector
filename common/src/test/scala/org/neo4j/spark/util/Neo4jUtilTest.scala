@@ -1,8 +1,6 @@
 package org.neo4j.spark.util
 
-import org.junit.{Assert, Test}
-
-import scala.collection.JavaConverters.mapAsJavaMapConverter
+import org.junit.Test
 
 class Neo4jUtilTest {
 
