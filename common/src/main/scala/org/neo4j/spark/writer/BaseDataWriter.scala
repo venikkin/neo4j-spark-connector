@@ -3,9 +3,11 @@ package org.neo4j.spark.writer
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.connector.metric.CustomTaskMetric
+import org.apache.spark.sql.connector.write.DataWriter
 import org.apache.spark.sql.types.StructType
-import org.neo4j.driver.exceptions.{ClientException, Neo4jException, ServiceUnavailableException, SessionExpiredException, TransientException}
-import org.neo4j.driver.{Bookmark, Session, Transaction, Values}
+import org.neo4j.driver.exceptions.{ClientException, Neo4jException, ServiceUnavailableException}
+import org.neo4j.driver.{Session, Transaction, Values}
 import org.neo4j.spark.service._
 import org.neo4j.spark.util.Neo4jUtil.{closeSafely, isRetryableException}
 import org.neo4j.spark.util.{DriverCache, Neo4jOptions}
@@ -22,7 +24,7 @@ abstract class BaseDataWriter(jobId: String,
                               structType: StructType,
                               saveMode: SaveMode,
                               options: Neo4jOptions,
-                              scriptResult: java.util.List[java.util.Map[String, AnyRef]]) extends Logging with Closeable {
+                              scriptResult: java.util.List[java.util.Map[String, AnyRef]]) extends Logging with Closeable with DataWriter[InternalRow] {
   private val STOPPED_THREAD_EXCEPTION_MESSAGE = "Connection to the database terminated. Thread interrupted while committing the transaction"
 
   private val driverCache: DriverCache = new DriverCache(options.connection, jobId)
@@ -37,6 +39,8 @@ abstract class BaseDataWriter(jobId: String,
   private val retries = new CountDownLatch(options.transactionMetadata.retries)
 
   private val query: String = new Neo4jQueryService(options, new Neo4jQueryWriteStrategy(saveMode)).createQuery()
+
+  private val metrics = DataWriterMetrics()
 
   def write(record: InternalRow): Unit = {
     batch.add(mappingService.convert(record, structType))
@@ -61,9 +65,9 @@ abstract class BaseDataWriter(jobId: String,
       val result = transaction.run(query,
         Values.value(Map[String, AnyRef](Neo4jQueryStrategy.VARIABLE_EVENTS -> batch,
           Neo4jQueryStrategy.VARIABLE_SCRIPT_RESULT -> scriptResult).asJava))
+      val summary = result.consume()
+      val counters = summary.counters()
       if (log.isDebugEnabled) {
-        val summary = result.consume()
-        val counters = summary.counters()
         log.debug(
           s"""Batch saved into Neo4j data with:
              | - nodes created: ${counters.nodesCreated()}
@@ -76,6 +80,10 @@ abstract class BaseDataWriter(jobId: String,
              |""".stripMargin)
       }
       transaction.commit()
+
+      // update metrics
+      metrics.applyCounters(batch.size(), counters)
+
       closeSafely(transaction)
       batch.clear()
     } catch {
@@ -103,7 +111,7 @@ abstract class BaseDataWriter(jobId: String,
    * any error in this case. The transaction are rolled back automatically.
    */
   private def logAndThrowException(e: Exception): Unit = {
-    if(e.isInstanceOf[ServiceUnavailableException] && e.getMessage == STOPPED_THREAD_EXCEPTION_MESSAGE) {
+    if (e.isInstanceOf[ServiceUnavailableException] && e.getMessage == STOPPED_THREAD_EXCEPTION_MESSAGE) {
       logWarning(e.getMessage)
     }
     else {
@@ -140,4 +148,6 @@ abstract class BaseDataWriter(jobId: String,
     closeSafely(transaction, log)
     closeSafely(session, log)
   }
+
+  override def currentMetricsValues(): Array[CustomTaskMetric] = metrics.metricValues()
 }
