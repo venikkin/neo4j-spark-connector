@@ -3,8 +3,8 @@ package org.neo4j.spark.writer
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.connector.metric.{CustomMetric, CustomSumMetric}
 import org.apache.spark.sql.connector.write.streaming.StreamingWrite
-import org.apache.spark.sql.connector.write.{BatchWrite, SupportsOverwrite, SupportsTruncate, Write, WriteBuilder}
-import org.apache.spark.sql.sources.Filter
+import org.apache.spark.sql.connector.write.{BatchWrite, SupportsOverwrite, SupportsTruncate, V1Write, Write, WriteBuilder}
+import org.apache.spark.sql.sources.{Filter, InsertableRelation}
 import org.apache.spark.sql.types.StructType
 import org.neo4j.spark.streaming.Neo4jStreamingWriter
 import org.neo4j.spark.util.{Neo4jOptions, NodeSaveMode, ValidateSaveMode, ValidateWrite, ValidationUtil, Validations}
@@ -16,7 +16,7 @@ class Neo4jWriterBuilder(queryId: String,
   with SupportsOverwrite
   with SupportsTruncate {
 
-  override def build(): Write = new Write {
+  override def build(): Write = new V1Write {
     override def description(): String = "Neo4j Writer"
 
     override def toBatch: BatchWrite = buildForBatch()
@@ -24,6 +24,12 @@ class Neo4jWriterBuilder(queryId: String,
     override def toStreaming: StreamingWrite = buildForStreaming()
 
     override def supportedCustomMetrics(): Array[CustomMetric] = DataWriterMetrics.metricDeclarations()
+
+    override def toInsertableRelation: InsertableRelation = new Neo4jBatchWriter(queryId,
+      schema,
+      saveMode,
+      validOptions(saveMode)
+    )
   }
 
   def validOptions(actualSaveMode: SaveMode): Neo4jOptions = {
