@@ -1,11 +1,10 @@
 package org.neo4j.spark.writer
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.{DataFrame, SaveMode}
+import org.apache.spark.sql.{Row, SaveMode}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.metric.CustomTaskMetric
 import org.apache.spark.sql.connector.write.DataWriter
-import org.apache.spark.sql.sources.InsertableRelation
 import org.apache.spark.sql.types.StructType
 import org.neo4j.driver.exceptions.{ClientException, Neo4jException, ServiceUnavailableException}
 import org.neo4j.driver.{Session, Transaction, Values}
@@ -151,4 +150,63 @@ abstract class BaseDataWriter(jobId: String,
   }
 
   override def currentMetricsValues(): Array[CustomTaskMetric] = metrics.metricValues()
+
+  def insert(data: Iterator[Row]): Unit = {
+    val rows = data.map { row =>
+      mappingService.convert(InternalRow.fromSeq(row.toSeq), structType)
+    }.toList
+    try {
+      if (session == null || !session.isOpen) {
+        session = driverCache.getOrCreate().session(options.session.toNeo4jSession())
+      }
+      if (transaction == null || !transaction.isOpen) {
+        transaction = session.beginTransaction()
+      }
+      log.info(
+        s"""Writing a batch of ${rows.length} elements to Neo4j using V1Writer,
+           |for jobId=$jobId and partitionId=$partitionId
+           |with query: $query
+           |""".stripMargin)
+      val result = transaction.run(query,
+        Values.value(Map[String, AnyRef](Neo4jQueryStrategy.VARIABLE_EVENTS -> rows.asJava,
+          Neo4jQueryStrategy.VARIABLE_SCRIPT_RESULT -> scriptResult).asJava))
+      val summary = result.consume()
+      val counters = summary.counters()
+      if (log.isDebugEnabled) {
+        log.debug(
+          s"""Batch saved into Neo4j data with:
+             | - nodes created: ${counters.nodesCreated()}
+             | - nodes deleted: ${counters.nodesDeleted()}
+             | - relationships created: ${counters.relationshipsCreated()}
+             | - relationships deleted: ${counters.relationshipsDeleted()}
+             | - properties set: ${counters.propertiesSet()}
+             | - labels added: ${counters.labelsAdded()}
+             | - labels removed: ${counters.labelsRemoved()}
+             |""".stripMargin)
+      }
+      transaction.commit()
+
+      // update metrics
+      //metrics.applyCounters(batch.size(), counters)
+
+      closeSafely(transaction)
+      //batch.clear()
+    } catch {
+      case neo4jTransientException: Neo4jException =>
+        val code = neo4jTransientException.code()
+        if (isRetryableException(neo4jTransientException)
+          && !options.transactionMetadata.failOnTransactionCodes.contains(code)
+          && retries.getCount > 0) {
+          retries.countDown()
+          log.info(s"Matched Neo4j transient exception next retry is ${options.transactionMetadata.retries - retries.getCount}")
+          close()
+          LockSupport.parkNanos(Duration.ofMillis(options.transactionMetadata.retryTimeout).toNanos)
+          insert(data)
+        } else {
+          logAndThrowException(neo4jTransientException)
+        }
+      case e: Exception => logAndThrowException(e)
+    }
+    ()
+  }
 }
