@@ -152,9 +152,14 @@ abstract class BaseDataWriter(jobId: String,
   override def currentMetricsValues(): Array[CustomTaskMetric] = metrics.metricValues()
 
   def insert(data: Iterator[Row]): Unit = {
-    val rows = data.map { row =>
-      mappingService.convert(InternalRow.fromSeq(row.toSeq), structType)
-    }.toList
+    while (data.hasNext) {
+      writeToNeo4j(data.take(options.transactionMetadata.batchSize).map { row =>
+        mappingService.convert(InternalRow.fromSeq(row.toSeq), structType)
+      }.toList)
+    }
+  }
+
+  def writeToNeo4j(data: List[util.Map[String, AnyRef]]): Unit = {
     try {
       if (session == null || !session.isOpen) {
         session = driverCache.getOrCreate().session(options.session.toNeo4jSession())
@@ -163,12 +168,12 @@ abstract class BaseDataWriter(jobId: String,
         transaction = session.beginTransaction()
       }
       log.info(
-        s"""Writing a batch of ${rows.length} elements to Neo4j using V1Writer,
+        s"""Writing a batch of ${data.length} elements to Neo4j using V1Writer,
            |for jobId=$jobId and partitionId=$partitionId
            |with query: $query
            |""".stripMargin)
       val result = transaction.run(query,
-        Values.value(Map[String, AnyRef](Neo4jQueryStrategy.VARIABLE_EVENTS -> rows.asJava,
+        Values.value(Map[String, AnyRef](Neo4jQueryStrategy.VARIABLE_EVENTS -> data.asJava,
           Neo4jQueryStrategy.VARIABLE_SCRIPT_RESULT -> scriptResult).asJava))
       val summary = result.consume()
       val counters = summary.counters()
@@ -201,7 +206,7 @@ abstract class BaseDataWriter(jobId: String,
           log.info(s"Matched Neo4j transient exception next retry is ${options.transactionMetadata.retries - retries.getCount}")
           close()
           LockSupport.parkNanos(Duration.ofMillis(options.transactionMetadata.retryTimeout).toNanos)
-          insert(data)
+          writeToNeo4j(data)
         } else {
           logAndThrowException(neo4jTransientException)
         }
