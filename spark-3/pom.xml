@@ -4,29 +4,29 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>neo4j-connector-apache-spark</artifactId>
+    <artifactId>neo4j-connector-apache-spark_2.12</artifactId>
     <name>neo4j-connector-apache-spark-${spark.version}</name>
     <description>Spark ${spark.version} for Neo4j Connector for Apache Spark using the binary Bolt Driver</description>
 
     <packaging>jar</packaging>
     <!-- don't update the following line -->
-    <!-- <version>${project.parent.version}</version> -->
+    <version>5.2.1_for_spark_3</version>
 
     <parent>
         <groupId>org.neo4j</groupId>
-        <artifactId>neo4j-connector-apache-spark_parent</artifactId>
+        <artifactId>neo4j-connector-apache-spark_2.12_parent</artifactId>
         <version>5.2.1</version>
     </parent>
 
     <dependencies>
         <dependency>
             <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-connector-apache-spark_common</artifactId>
+            <artifactId>neo4j-connector-apache-spark_2.12_common</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-connector-apache-spark_test-support</artifactId>
+            <artifactId>neo4j-connector-apache-spark_2.12_test-support</artifactId>
             <version>${project.parent.version}</version>
             <scope>test</scope>
         </dependency>

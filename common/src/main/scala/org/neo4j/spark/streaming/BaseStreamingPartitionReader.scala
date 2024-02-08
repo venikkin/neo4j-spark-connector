@@ -51,7 +51,7 @@ class BaseStreamingPartitionReader(private val options: Neo4jOptions,
       .flatMap(f => f.getValue)
       .get // TODO: test this with emptied-after-checkpoint database (max(timestamp) would return NULL for the end)
       .asInstanceOf[Long]
-    map.put(Neo4jQueryStrategy.VARIABLE_STREAM, Map("offset" -> start, "end" -> end))
+    map.put(Neo4jQueryStrategy.VARIABLE_STREAM, java.util.Map.of("offset", start, "end", end))
     map
   }
 
