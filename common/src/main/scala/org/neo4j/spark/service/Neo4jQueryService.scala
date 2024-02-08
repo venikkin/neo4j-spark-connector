@@ -8,6 +8,7 @@ import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, Coun
 import org.apache.spark.sql.sources.{And, Filter, Or}
 import org.neo4j.cypherdsl.core._
 import org.neo4j.cypherdsl.core.renderer.Renderer
+import org.neo4j.cypherdsl.core.renderer.Renderer.getDefaultRenderer
 import org.neo4j.cypherdsl.parser.{CypherParser, Options}
 import org.neo4j.spark.util.Neo4jImplicits._
 import org.neo4j.spark.util.{Neo4jOptions, Neo4jUtil, NodeSaveMode, QueryType}
@@ -121,24 +122,36 @@ class Neo4jQueryReadStrategy(filters: Array[Filter] = Array.empty[Filter],
           |\tPlease specify the aggregations in the custom query directly""".stripMargin)
     }
 
-    val stmt = CypherParser.parseStatement(options.query.value)
-
-    Cypher.`with`(Cypher.parameter("scriptResult").as(Neo4jQueryStrategy.VARIABLE_SCRIPT_RESULT))
+    val stmt = CypherParser.parseStatement(options.query.value, Options.newOptions()
+      .build())
+    val streamingProperty = options.streamingOptions.propertyName
+    val boundedQuery = Cypher.`with`(Cypher.parameter("scriptResult").as(Neo4jQueryStrategy.VARIABLE_SCRIPT_RESULT))
       .call(stmt)
+      .`with`(Asterisk.INSTANCE)
+      .where(Cypher.name(streamingProperty).gt(Cypher.parameter("stream.offset"))
+        .and(Cypher.name(streamingProperty).lte(Cypher.parameter("stream.end"))))
+      .returning(Asterisk.INSTANCE)
+      .build()
+
+    return getDefaultRenderer.render(boundedQuery)
+//    CALL {
+//      $userQuery
+//    }
+//    WHERE $streamingProperty > $stream.offset && $streamingProperty <= $stream.end
 
 
 
 
-    val limitedQuery = if (hasSkipLimit) {
-      s"""${options.query.value}
-         |SKIP ${partitionPagination.skip} LIMIT ${partitionPagination.topN.limit}
-         |""".stripMargin
-    } else {
-      s"""${options.query.value}
-         |""".stripMargin
-    }
-    s"""WITH ${"$"}scriptResult AS ${Neo4jQueryStrategy.VARIABLE_SCRIPT_RESULT}
-       |$limitedQuery""".stripMargin
+//    val limitedQuery = if (hasSkipLimit) {
+//      s"""${options.query.value}
+//         |SKIP ${partitionPagination.skip} LIMIT ${partitionPagination.topN.limit}
+//         |""".stripMargin
+//    } else {
+//      s"""${options.query.value}
+//         |""".stripMargin
+//    }
+//    s"""WITH ${"$"}scriptResult AS ${Neo4jQueryStrategy.VARIABLE_SCRIPT_RESULT}
+//       |$limitedQuery""".stripMargin
   }
 
   override def createStatementForRelationships(options: Neo4jOptions): String = {

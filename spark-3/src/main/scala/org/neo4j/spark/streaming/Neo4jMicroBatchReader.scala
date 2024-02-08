@@ -45,7 +45,9 @@ class Neo4jMicroBatchReader(private val optionalSchema: Optional[StructType],
     logDebug(s"start and end offset: $start - $end")
     this.filters = if (start.asInstanceOf[Neo4jOffset].offset != StreamingFrom.ALL.value()) {
       val prop = Neo4jUtil.getStreamingPropertyName(neo4jOptions)
-      Array(GreaterThan(prop, start.asInstanceOf[Neo4jOffset].offset))
+      Array(
+        GreaterThan(prop, start.asInstanceOf[Neo4jOffset].offset),
+        LessThanOrEqual(prop, end.asInstanceOf[Neo4jOffset].offset))
     }
     else {
       this.filters

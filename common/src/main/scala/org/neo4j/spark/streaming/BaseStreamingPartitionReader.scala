@@ -2,7 +2,7 @@ package org.neo4j.spark.streaming
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.expressions.aggregate.AggregateFunc
-import org.apache.spark.sql.sources.Filter
+import org.apache.spark.sql.sources.{Filter, GreaterThan, LessThanOrEqual}
 import org.apache.spark.sql.types.{DataTypes, StructType}
 import org.neo4j.spark.reader.BasePartitionReader
 import org.neo4j.spark.service.{Neo4jQueryStrategy, PartitionPagination}
@@ -31,8 +31,10 @@ class BaseStreamingPartitionReader(private val options: Neo4jOptions,
 
   private val streamingPropertyName = Neo4jUtil.getStreamingPropertyName(options)
 
-  private val streamingField = filters.find(f => f.getAttribute
-      .map(name => name == streamingPropertyName).getOrElse(false))
+  private val streamingField = filters.find(f => f.getAttribute.contains(streamingPropertyName))
+
+  private val streamStart = filters.find(f => f.getAttribute.contains(streamingPropertyName) && f.isInstanceOf[GreaterThan])
+  private val streamEnd = filters.find(f => f.getAttribute.contains(streamingPropertyName) && f.isInstanceOf[LessThanOrEqual])
 
   @volatile
   private var lastTimestamp: java.lang.Long = _
@@ -41,11 +43,15 @@ class BaseStreamingPartitionReader(private val options: Neo4jOptions,
 
   private lazy val values = {
     val map = new util.HashMap[String, Any](super.getQueryParameters)
-    val value: Long = streamingField
+    val start: Long = streamStart
       .flatMap(f => f.getValue)
       .getOrElse(StreamingFrom.ALL.value())
       .asInstanceOf[Long]
-    map.put(Neo4jQueryStrategy.VARIABLE_STREAM, Collections.singletonMap("offset", value))
+    val end: Long = streamEnd
+      .flatMap(f => f.getValue)
+      .get // TODO: test this with emptied-after-checkpoint database (max(timestamp) would return NULL for the end)
+      .asInstanceOf[Long]
+    map.put(Neo4jQueryStrategy.VARIABLE_STREAM, Map("offset" -> start, "end" -> end))
     map
   }
 
