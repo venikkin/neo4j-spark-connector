@@ -8,6 +8,7 @@ import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, Coun
 import org.apache.spark.sql.sources.{And, Filter, Or}
 import org.neo4j.cypherdsl.core._
 import org.neo4j.cypherdsl.core.renderer.Renderer
+import org.neo4j.cypherdsl.parser.{CypherParser, Options}
 import org.neo4j.spark.util.Neo4jImplicits._
 import org.neo4j.spark.util.{Neo4jOptions, Neo4jUtil, NodeSaveMode, QueryType}
 
@@ -119,6 +120,15 @@ class Neo4jQueryReadStrategy(filters: Array[Filter] = Array.empty[Filter],
           |\tThese aggregations are going to be ignored.
           |\tPlease specify the aggregations in the custom query directly""".stripMargin)
     }
+
+    val stmt = CypherParser.parseStatement(options.query.value)
+
+    Cypher.`with`(Cypher.parameter("scriptResult").as(Neo4jQueryStrategy.VARIABLE_SCRIPT_RESULT))
+      .call(stmt)
+
+
+
+
     val limitedQuery = if (hasSkipLimit) {
       s"""${options.query.value}
          |SKIP ${partitionPagination.skip} LIMIT ${partitionPagination.topN.limit}
