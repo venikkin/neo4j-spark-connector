@@ -40,7 +40,8 @@ esac
 
 
 
-projectVersion=$(mvn_evaluate "project.version")
+PROJECT_VERSION=$(mvn_evaluate "project.version")
+SPARK_PACKAGES_VERSION="${PROJECT_VERSION}-s_$SCALA_VERSION"
 
 # backup files
 cp pom.xml pom.xml.bak
@@ -60,10 +61,11 @@ sed_i "s/<artifactId>neo4j-connector-apache-spark_parent<\/artifactId>/<artifact
 sed_i "s/<artifactId>neo4j-connector-apache-spark_test-support<\/artifactId>/<artifactId>neo4j-connector-apache-spark_${SCALA_VERSION}_test-support<\/artifactId>/" "common/pom.xml"
 
 sed_i "s/<artifactId>neo4j-connector-apache-spark<\/artifactId>/<artifactId>neo4j-connector-apache-spark_${SCALA_VERSION}<\/artifactId>/" "spark-3/pom.xml"
-sed_i "s/<!-- <version>\${project.parent.version}<\/version> -->/<version>${projectVersion}_for_spark_3<\/version>/" "spark-3/pom.xml"
+sed_i "s/<!-- <version>\${project.parent.version}<\/version> -->/<version>${PROJECT_VERSION}_for_spark_3<\/version>/" "spark-3/pom.xml"
 sed_i "s/<artifactId>neo4j-connector-apache-spark_parent<\/artifactId>/<artifactId>neo4j-connector-apache-spark_${SCALA_VERSION}_parent<\/artifactId>/" "spark-3/pom.xml"
 sed_i "s/<artifactId>neo4j-connector-apache-spark_common<\/artifactId>/<artifactId>neo4j-connector-apache-spark_${SCALA_VERSION}_common<\/artifactId>/" "spark-3/pom.xml"
 sed_i "s/<artifactId>neo4j-connector-apache-spark_test-support<\/artifactId>/<artifactId>neo4j-connector-apache-spark_${SCALA_VERSION}_test-support<\/artifactId>/" "spark-3/pom.xml"
+sed_i "s/<spark-packages.version\/>/<spark-packages.version>${SPARK_PACKAGES_VERSION}<\/spark-packages.version>/" "spark-3/pom.xml"
 
 # build
 mvn clean "${GOAL}" -Pscala-"${SCALA_VERSION}" -DskipTests ${ALT_DEPLOYMENT_REPOSITORY}
