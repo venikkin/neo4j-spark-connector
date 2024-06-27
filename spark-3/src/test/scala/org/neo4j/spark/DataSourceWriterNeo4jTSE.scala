@@ -2,19 +2,19 @@ package org.neo4j.spark
 
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.spark.SparkException
-import org.apache.spark.scheduler.{SparkListener, SparkListenerJobEnd, SparkListenerStageCompleted}
+import org.apache.spark.scheduler.{SparkListener, SparkListenerStageCompleted}
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 import org.junit.Assert.{assertEquals, assertTrue, fail}
-import org.junit.{Assume, BeforeClass, Test}
+import org.junit.Test
 import org.neo4j.driver.summary.ResultSummary
-import org.neo4j.driver.{Result, SessionConfig, Transaction, TransactionWork}
+import org.neo4j.driver.{Result, Session, SessionConfig, Transaction, TransactionWork}
 import org.neo4j.spark.writer.DataWriterMetrics
 
 import java.util.concurrent.{CountDownLatch, TimeUnit}
 
 class DataSourceWriterNeo4jTSE extends SparkConnectorScalaBaseTSE {
 
-  val sparkSession = SparkSession.builder().getOrCreate()
+  private val sparkSession = SparkSession.builder().getOrCreate()
 
   import sparkSession.implicits._
 
@@ -496,15 +496,15 @@ class DataSourceWriterNeo4jTSE extends SparkConnectorScalaBaseTSE {
         .option("relationship.target.node.keys", "instrument:name")
         .save()
     } catch {
-      case sparkException: SparkException => {
-        val clientException = ExceptionUtils.getRootCause(sparkException)
+      case exception: IllegalArgumentException => {
+        val clientException = ExceptionUtils.getRootCause(exception)
         assertTrue(clientException.getMessage.equals(
           """Write failed due to the following errors:
             | - Schema is missing musician_name from option `relationship.source.node.keys`
             |
             |The option key and value might be inverted.""".stripMargin))
       }
-      case generic: Throwable => fail(s"should be thrown a ${classOf[SparkException].getName}, got ${generic.getClass} instead")
+      case generic: Throwable => fail(s"should be thrown a ${classOf[IllegalArgumentException].getName}, got ${generic.getClass} instead")
     }
   }
 
@@ -533,8 +533,8 @@ class DataSourceWriterNeo4jTSE extends SparkConnectorScalaBaseTSE {
         .option("relationship.target.node.keys", "instrument_name:name")
         .save()
     } catch {
-      case sparkException: SparkException => {
-        val clientException = ExceptionUtils.getRootCause(sparkException)
+      case exception: IllegalArgumentException => {
+        val clientException = ExceptionUtils.getRootCause(exception)
         assertTrue(clientException.getMessage.equals(
           """Write failed due to the following errors:
             | - Schema is missing instrument_name from option `relationship.target.node.keys`
@@ -542,7 +542,7 @@ class DataSourceWriterNeo4jTSE extends SparkConnectorScalaBaseTSE {
             |
             |The option key and value might be inverted.""".stripMargin))
       }
-      case generic: Throwable => fail(s"should be thrown a ${classOf[SparkException].getName}, got ${generic.getClass} instead")
+      case generic: Throwable => fail(s"should be thrown a ${classOf[IllegalArgumentException].getName}, got ${generic.getClass} instead")
     }
   }
 
@@ -565,15 +565,15 @@ class DataSourceWriterNeo4jTSE extends SparkConnectorScalaBaseTSE {
         .option("node.properties", "musician_name:name,another_name:name")
         .save()
     } catch {
-      case sparkException: SparkException => {
-        val clientException = ExceptionUtils.getRootCause(sparkException)
+      case exception: IllegalArgumentException => {
+        val clientException = ExceptionUtils.getRootCause(exception)
         assertTrue(clientException.getMessage.equals(
           """Write failed due to the following errors:
             | - Schema is missing instrument_name from option `node.properties`
             |
             |The option key and value might be inverted.""".stripMargin))
       }
-      case generic: Throwable => fail(s"should be thrown a ${classOf[SparkException].getName}, got ${generic.getClass} instead: ${generic.getMessage}")
+      case generic: Throwable => fail(s"should be thrown a ${classOf[IllegalArgumentException].getName}, got ${generic.getClass} instead: ${generic.getMessage}")
     }
   }
 
@@ -602,6 +602,43 @@ class DataSourceWriterNeo4jTSE extends SparkConnectorScalaBaseTSE {
       .save()
 
     latch.await(30, TimeUnit.SECONDS)
+  }
+
+  @Test
+  def `does not create constraint if schema validation fails`(): Unit = {
+    val cities = Seq(
+      (1, "Cherbourg en Cotentin"),
+      (2, "London"),
+      (3, "Malmö"),
+    ).toDF("id", "city")
+
+    try {
+      cities.write
+        .format(classOf[DataSource].getName)
+        .mode(SaveMode.Overwrite)
+        .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
+        .option("labels", ":News")
+        .option("node.keys", "newsId")
+        .option("schema.optimization.node.keys", "UNIQUE")
+        .save()
+    } catch {
+      case _:Exception => {
+      }
+    }
+
+    var session: Session = null
+    try {
+      session = SparkConnectorScalaSuiteIT.driver.session()
+      val result = session.run("SHOW CONSTRAINTS YIELD labelsOrTypes WHERE labelsOrTypes[0] = 'News' RETURN count(*) AS count")
+        .single()
+        .get("count")
+        .asLong()
+      assertEquals(0, result)
+    } finally {
+      if (session != null) {
+        session.close()
+      }
+    }
   }
 
   class MetricsListener(expectedMetrics: Map[String, Any], done: CountDownLatch) extends SparkListener {
