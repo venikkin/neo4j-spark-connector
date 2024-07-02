@@ -27,7 +27,7 @@ PATH_TO_PACKAGE_FILE=$5
 #   10 - Other license
 LICENSE="0"
 
-curl -X POST 'https://spark-packages.org/api/submit-release' \
+curl -X POST --fail 'https://spark-packages.org/api/submit-release' \
   -u "$USER:$TOKEN" \
   -F "git_commit_sha1=$GIT_HASH" \
   -F "version=$VERSION" \
