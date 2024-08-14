@@ -1,14 +1,39 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.neo4j.spark.service
 
-import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
+import org.apache.spark.sql.types.DataTypes
+import org.apache.spark.sql.types.StructField
+import org.apache.spark.sql.types.StructType
 import org.junit.Assert._
+import org.junit.Before
+import org.junit.FixMethodOrder
+import org.junit.Test
 import org.junit.runners.MethodSorters
-import org.junit.{Before, FixMethodOrder, Test}
+import org.neo4j.driver.Transaction
+import org.neo4j.driver.TransactionWork
 import org.neo4j.driver.summary.ResultSummary
-import org.neo4j.driver.{Transaction, TransactionWork}
+import org.neo4j.spark.SparkConnectorScalaBaseTSE
+import org.neo4j.spark.SparkConnectorScalaSuiteIT
 import org.neo4j.spark.converter.CypherToSparkTypeConverter
-import org.neo4j.spark.{SparkConnectorScalaBaseTSE, SparkConnectorScalaSuiteIT}
-import org.neo4j.spark.util.{DriverCache, Neo4jOptions, Neo4jUtil, QueryType}
+import org.neo4j.spark.util.DriverCache
+import org.neo4j.spark.util.Neo4jOptions
+import org.neo4j.spark.util.Neo4jUtil
+import org.neo4j.spark.util.QueryType
 
 import java.util
 import java.util.UUID
@@ -22,7 +47,8 @@ class SchemaServiceTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run("MATCH (n) DETACH DELETE n").consume()
-        })
+        }
+      )
   }
 
   @Test
@@ -121,7 +147,10 @@ class SchemaServiceTSE extends SparkConnectorScalaBaseTSE {
 
     val schema = getSchema(options)
 
-    assertEquals(getExpectedStructType(Seq(StructField("names", DataTypes.createArrayType(DataTypes.StringType)))), schema)
+    assertEquals(
+      getExpectedStructType(Seq(StructField("names", DataTypes.createArrayType(DataTypes.StringType)))),
+      schema
+    )
   }
 
   @Test
@@ -132,7 +161,10 @@ class SchemaServiceTSE extends SparkConnectorScalaBaseTSE {
 
     val schema = getSchema(options)
 
-    assertEquals(getExpectedStructType(Seq(StructField("names", DataTypes.createArrayType(DataTypes.DateType)))), schema)
+    assertEquals(
+      getExpectedStructType(Seq(StructField("names", DataTypes.createArrayType(DataTypes.DateType)))),
+      schema
+    )
   }
 
   @Test
@@ -143,7 +175,10 @@ class SchemaServiceTSE extends SparkConnectorScalaBaseTSE {
 
     val schema = getSchema(options)
 
-    assertEquals(getExpectedStructType(Seq(StructField("dates", DataTypes.createArrayType(DataTypes.TimestampType)))), schema)
+    assertEquals(
+      getExpectedStructType(Seq(StructField("dates", DataTypes.createArrayType(DataTypes.TimestampType)))),
+      schema
+    )
   }
 
   @Test
@@ -154,7 +189,10 @@ class SchemaServiceTSE extends SparkConnectorScalaBaseTSE {
 
     val schema = getSchema(options)
 
-    assertEquals(getExpectedStructType(Seq(StructField("dates", DataTypes.createArrayType(CypherToSparkTypeConverter.timeType)))), schema)
+    assertEquals(
+      getExpectedStructType(Seq(StructField("dates", DataTypes.createArrayType(CypherToSparkTypeConverter.timeType)))),
+      schema
+    )
   }
 
   @Test
@@ -175,18 +213,22 @@ class SchemaServiceTSE extends SparkConnectorScalaBaseTSE {
       CREATE (p1:Person {age: 31, name: 'Jane Doe'}),
         (p2:Person {name: 'John Doe', age: 33, location: null}),
         (p3:Person {age: 25, location: point({latitude: 12.12, longitude: 31.13})})
-    """)
+    """
+    )
 
     val options: java.util.Map[String, String] = new util.HashMap[String, String]()
     options.put(QueryType.LABELS.toString.toLowerCase, "Person")
 
     val schema = getSchema(options)
 
-    assertEquals(getExpectedStructType(Seq(
-      StructField("age", DataTypes.LongType),
-      StructField("location", CypherToSparkTypeConverter.pointType),
-      StructField("name", DataTypes.StringType)
-    )), schema)
+    assertEquals(
+      getExpectedStructType(Seq(
+        StructField("age", DataTypes.LongType),
+        StructField("location", CypherToSparkTypeConverter.pointType),
+        StructField("name", DataTypes.StringType)
+      )),
+      schema
+    )
   }
 
   private def getExpectedStructType(structFields: Seq[StructField]): StructType = {
@@ -202,7 +244,8 @@ class SchemaServiceTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(query).consume()
-        })
+        }
+      )
   }
 
   private def getSchema(options: java.util.Map[String, String]): StructType = {

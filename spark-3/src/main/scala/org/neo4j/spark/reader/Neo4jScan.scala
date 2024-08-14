@@ -1,26 +1,52 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.neo4j.spark.reader
 
 import org.apache.spark.sql.connector.expressions.aggregate.AggregateFunc
+import org.apache.spark.sql.connector.read.Batch
+import org.apache.spark.sql.connector.read.InputPartition
+import org.apache.spark.sql.connector.read.PartitionReaderFactory
+import org.apache.spark.sql.connector.read.Scan
 import org.apache.spark.sql.connector.read.streaming.MicroBatchStream
-import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan}
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
 import org.neo4j.spark.config.TopN
 import org.neo4j.spark.service.PartitionPagination
 import org.neo4j.spark.streaming.Neo4jMicroBatchReader
-import org.neo4j.spark.util.{Neo4jOptions, Neo4jUtil, StorageType, ValidateReadNotStreaming, ValidateReadStreaming, Validations}
+import org.neo4j.spark.util.Neo4jOptions
+import org.neo4j.spark.util.Neo4jUtil
+import org.neo4j.spark.util.StorageType
+import org.neo4j.spark.util.ValidateReadNotStreaming
+import org.neo4j.spark.util.ValidateReadStreaming
+import org.neo4j.spark.util.Validations
 
 import java.util.Optional
 
 case class Neo4jPartition(partitionSkipLimit: PartitionPagination) extends InputPartition
 
-class Neo4jScan(neo4jOptions: Neo4jOptions,
-                jobId: String,
-                schema: StructType,
-                filters: Array[Filter],
-                requiredColumns: StructType,
-                aggregateColumns: Array[AggregateFunc],
-                topN: Option[TopN]) extends Scan with Batch {
+class Neo4jScan(
+  neo4jOptions: Neo4jOptions,
+  jobId: String,
+  schema: StructType,
+  filters: Array[Filter],
+  requiredColumns: StructType,
+  aggregateColumns: Array[AggregateFunc],
+  topN: Option[TopN]
+) extends Scan with Batch {
 
   override def toBatch: Batch = this
 
@@ -29,9 +55,14 @@ class Neo4jScan(neo4jOptions: Neo4jOptions,
   private def createPartitions() = {
     Validations.validate(ValidateReadNotStreaming(neo4jOptions, jobId))
     // we get the skip/limit for each partition and execute the "script"
-    val (partitionSkipLimitList, scriptResult) = Neo4jUtil.callSchemaService(neo4jOptions, jobId, filters, { schemaService =>
-      (schemaService.skipLimitFromPartition(topN), schemaService.execute(neo4jOptions.script))
-    })
+    val (partitionSkipLimitList, scriptResult) = Neo4jUtil.callSchemaService(
+      neo4jOptions,
+      jobId,
+      filters,
+      { schemaService =>
+        (schemaService.skipLimitFromPartition(topN), schemaService.execute(neo4jOptions.script))
+      }
+    )
     // we generate a partition for each element
     this.scriptResult = scriptResult
     partitionSkipLimitList
@@ -45,7 +76,13 @@ class Neo4jScan(neo4jOptions: Neo4jOptions,
 
   override def createReaderFactory(): PartitionReaderFactory = {
     new Neo4jPartitionReaderFactory(
-      neo4jOptions, filters, schema, jobId, scriptResult, requiredColumns, aggregateColumns
+      neo4jOptions,
+      filters,
+      schema,
+      jobId,
+      scriptResult,
+      requiredColumns,
+      aggregateColumns
     )
   }
 

@@ -1,17 +1,38 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.neo4j.spark
 
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.types.DataTypes
+import org.apache.spark.sql.types.StructField
+import org.apache.spark.sql.types.StructType
 import org.junit.Assert._
 import org.junit.Test
+import org.neo4j.driver.Transaction
+import org.neo4j.driver.TransactionWork
 import org.neo4j.driver.summary.ResultSummary
-import org.neo4j.driver.{Transaction, TransactionWork}
 
 import java.sql.Timestamp
 import java.time._
 import java.util.TimeZone
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.Seq
 
@@ -40,11 +61,14 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("labels", "Person")
         .option("relationship", "KNOWS")
         .load()
-        .show()  // we need the action to be able to trigger the exception because of the changes in Spark 3
+        .show() // we need the action to be able to trigger the exception because of the changes in Spark 3
       org.junit.Assert.fail("Expected to throw an exception")
     } catch {
       case e: IllegalArgumentException =>
-        assertEquals("You need to specify just one of these options: 'gds', 'labels', 'query', 'relationship'", e.getMessage)
+        assertEquals(
+          "You need to specify just one of these options: 'gds', 'labels', 'query', 'relationship'",
+          e.getMessage
+        )
       case _: Throwable => fail(s"should be thrown a ${classOf[IllegalArgumentException].getName}")
     }
   }
@@ -58,11 +82,14 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("relationship", "KNOWS")
         .option("query", "MATCH (n) RETURN n")
         .load()
-        .show()  // we need the action to be able to trigger the exception because of the changes in Spark 3
+        .show() // we need the action to be able to trigger the exception because of the changes in Spark 3
       org.junit.Assert.fail("Expected to throw an exception")
     } catch {
       case e: IllegalArgumentException =>
-        assertEquals("You need to specify just one of these options: 'gds', 'labels', 'query', 'relationship'", e.getMessage)
+        assertEquals(
+          "You need to specify just one of these options: 'gds', 'labels', 'query', 'relationship'",
+          e.getMessage
+        )
       case _: Throwable => fail(s"should be thrown a ${classOf[IllegalArgumentException].getName}")
     }
   }
@@ -134,7 +161,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
 
   @Test
   def testReadNodeWithLocalTime(): Unit = {
-    val df: DataFrame = initTest(s"CREATE (p:Person {aTime: localtime({hour:12, minute: 23, second: 0, millisecond: 294})})")
+    val df: DataFrame =
+      initTest(s"CREATE (p:Person {aTime: localtime({hour:12, minute: 23, second: 0, millisecond: 294})})")
 
     val result = df.select("aTime").collectAsList().get(0).getAs[GenericRowWithSchema](0)
 
@@ -163,7 +191,6 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
 
     val result = df.select("aTime").collectAsList().get(0).getTimestamp(0)
 
-
     assertEquals(Timestamp.from(LocalDateTime.parse(localDateTime).toInstant(ZoneOffset.UTC)), result)
   }
 
@@ -173,7 +200,6 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
     val df: DataFrame = initTest(s"CREATE (p:Person {aTime: datetime('$datetime')})")
 
     val result = df.select("aTime").collectAsList().get(0).getTimestamp(0)
-
 
     assertEquals(Timestamp.from(OffsetDateTime.parse(datetime).toInstant), result)
   }
@@ -272,7 +298,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
 
   @Test
   def testReadNodeWithLocalTimeArray(): Unit = {
-    val df: DataFrame = initTest(s"CREATE (p:Person {someTimes: [localtime({hour:12}), localtime({hour:1, minute: 3})]})")
+    val df: DataFrame =
+      initTest(s"CREATE (p:Person {someTimes: [localtime({hour:12}), localtime({hour:1, minute: 3})]})")
 
     val res = df.select("someTimes").collectAsList().get(0).getAs[Seq[GenericRowWithSchema]](0)
 
@@ -294,7 +321,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
 
   @Test
   def testReadNodeWithPointArray(): Unit = {
-    val df: DataFrame = initTest(s"CREATE (p:Person {locations: [point({x: 11, y: 33.111}), point({x: 22, y: 44.222})]})")
+    val df: DataFrame =
+      initTest(s"CREATE (p:Person {locations: [point({x: 11, y: 33.111}), point({x: 22, y: 44.222})]})")
 
     val res = df.select("locations").collectAsList().get(0).getAs[Seq[GenericRowWithSchema]](0)
 
@@ -311,7 +339,9 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
 
   @Test
   def testReadNodeWithGeoPointArray(): Unit = {
-    val df: DataFrame = initTest(s"CREATE (p:Person {locations: [point({longitude: 11, latitude: 33.111}), point({longitude: 22, latitude: 44.222})]})")
+    val df: DataFrame = initTest(
+      s"CREATE (p:Person {locations: [point({longitude: 11, latitude: 33.111}), point({longitude: 22, latitude: 44.222})]})"
+    )
 
     val res = df.select("locations").collectAsList().get(0).getAs[Seq[GenericRowWithSchema]](0)
 
@@ -328,7 +358,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
 
   @Test
   def testReadNodeWithPoint3DArray(): Unit = {
-    val df: DataFrame = initTest(s"CREATE (p:Person {locations: [point({x: 11, y: 33.111, z: 12}), point({x: 22, y: 44.222, z: 99.1})]})")
+    val df: DataFrame =
+      initTest(s"CREATE (p:Person {locations: [point({x: 11, y: 33.111, z: 12}), point({x: 22, y: 44.222, z: 99.1})]})")
 
     val res = df.select("locations").collectAsList().get(0).getAs[Seq[GenericRowWithSchema]](0)
 
@@ -365,7 +396,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       datetime('$datetime1'),
       datetime('$datetime2')
      ]})
-     """)
+     """
+    )
 
     val result = df.select("aTime").collectAsList().get(0).getAs[Seq[Timestamp]](0)
 
@@ -400,7 +432,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       s"""
      CREATE (p1:Person {name: 'John Doe'}),
       (p2:Person {name: 'Jane Doe'})
-     """)
+     """
+    )
 
     val result = df.select("name").where("name = 'John Doe'").collectAsList()
 
@@ -414,7 +447,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       s"""
      CREATE (p1:Person {birth: date('1998-02-04')}),
       (p2:Person {birth: date('1988-01-05')})
-     """)
+     """
+    )
 
     val result = df.select("birth").where("birth = '1988-01-05'").collectAsList()
 
@@ -429,7 +463,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       s"""
      CREATE (p1:Person {birth: localdatetime('$localDateTime')}),
       (p2:Person {birth: localdatetime('$localDateTime')})
-     """)
+     """
+    )
 
     df.printSchema()
     df.show()
@@ -444,7 +479,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       s"""
      CREATE (p1:Person {name: 'John Doe'}),
       (p2:Person {name: 'Jane Doe'})
-     """)
+     """
+    )
 
     val result = df.select("name").where("NOT name = 'John Doe'").collectAsList()
 
@@ -458,7 +494,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       s"""
      CREATE (p1:Person {birth: date('1998-02-04')}),
       (p2:Person {birth: date('1988-01-05')})
-     """)
+     """
+    )
 
     val result = df.select("birth").where("NOT birth = '1988-01-05'").collectAsList()
 
@@ -472,7 +509,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       s"""
      CREATE (p1:Person {name: 'John Doe'}),
       (p2:Person {name: 'Jane Doe'})
-     """)
+     """
+    )
 
     val result = df.select("name").where("name != 'John Doe'").collectAsList()
 
@@ -487,7 +525,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {age: 19}),
       (p2:Person {age: 20}),
       (p3:Person {age: 21})
-     """)
+     """
+    )
 
     val result = df.select("age").where("age > 20").collectAsList()
 
@@ -502,7 +541,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {birth: date('1998-02-04')}),
       (p2:Person {birth: date('1988-01-05')}),
       (p3:Person {birth: date('1994-10-16')})
-     """)
+     """
+    )
 
     val result = df.select("birth").orderBy("birth").where("birth > '1990-01-01'").collectAsList()
 
@@ -517,7 +557,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       s"""
      CREATE (p:Person {location: point({x: 12, y: 12})}),
       (p2:Person {location: point({x: -6, y: -6})})
-     """)
+     """
+    )
 
     val result = df.select("location").where("location.x > 0").collectAsList()
     val row = result.get(0).getAs[GenericRowWithSchema](0);
@@ -537,7 +578,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {age: 19}),
       (p2:Person {age: 20}),
       (p3:Person {age: 21})
-     """)
+     """
+    )
 
     val result = df.select("age").orderBy("age").where("age >= 20").collectAsList()
 
@@ -553,7 +595,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {score: 19, limit: 20}),
       (p2:Person {score: 20,  limit: 18}),
       (p3:Person {score: 21,  limit: 12})
-     """)
+     """
+    )
 
     val result = df.select("score").orderBy("score").where("score >= limit").collectAsList()
 
@@ -569,7 +612,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {age: 39}),
       (p2:Person {age: 41}),
       (p3:Person {age: 43})
-     """)
+     """
+    )
 
     val result = df.select("age").orderBy("age").where("age < 40").collectAsList()
 
@@ -584,7 +628,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {age: 39}),
       (p2:Person {age: 41}),
       (p3:Person {age: 43})
-     """)
+     """
+    )
 
     val result = df.select("age").orderBy("age").where("age <= 41").collectAsList()
 
@@ -600,7 +645,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {age: 39}),
       (p2:Person {age: 41}),
       (p3:Person {age: 43})
-     """)
+     """
+    )
 
     val result = df.select("age").orderBy("age").where("age IN(41,43)").collectAsList()
 
@@ -616,7 +662,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {age: 39}),
       (p2:Person {age: null}),
       (p3:Person {age: 43})
-     """)
+     """
+    )
 
     val result = df.select("age").where("age IS NULL").collectAsList()
 
@@ -631,7 +678,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {age: 39}),
       (p2:Person {age: null}),
       (p3:Person {age: 43})
-     """)
+     """
+    )
 
     val result = df.select("age").orderBy("age").where("age IS NOT NULL").collectAsList()
 
@@ -647,7 +695,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {age: 39}),
       (p2:Person {age: null}),
       (p3:Person {age: 43})
-     """)
+     """
+    )
 
     val result = df.select("age").orderBy("age").where("age = 43 OR age = 39 OR age = 32").collectAsList()
 
@@ -663,7 +712,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {age: 39}),
       (p2:Person {age: null}),
       (p3:Person {age: 43})
-     """)
+     """
+    )
 
     val result = df.select("age").orderBy("age").where("age >= 39 AND age <= 43").collectAsList()
 
@@ -679,7 +729,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {name: 'John Mayer'}),
       (p2:Person {name: 'John Scofield'}),
       (p3:Person {name: 'John Butler'})
-     """)
+     """
+    )
 
     val result = df.select("name").orderBy("name").where("name LIKE 'John%'").collectAsList()
 
@@ -696,7 +747,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {name: 'John Mayer'}),
       (p2:Person {name: 'John Scofield'}),
       (p3:Person {name: 'John Butler'})
-     """)
+     """
+    )
 
     val result = df.select("name").where("name LIKE '%Scofield'").collectAsList()
 
@@ -711,7 +763,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
      CREATE (p1:Person {name: 'John Mayer'}),
       (p2:Person {name: 'John Scofield'}),
       (p3:Person {name: 'John Butler'})
-     """)
+     """
+    )
 
     val result = df.select("name").where("name LIKE '%ay%'").collectAsList()
 
@@ -735,7 +788,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
@@ -764,7 +818,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
@@ -813,7 +868,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df: DataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
@@ -847,12 +903,14 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
     SparkConnectorScalaSuiteIT.driver.session()
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixture2Query).consume()
-        })
+        }
+      )
 
     val partitionedDf = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
@@ -876,7 +934,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val partitionedDf = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
@@ -905,7 +964,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureProduct1Query).consume()
-        })
+        }
+      )
     val fixtureProduct2Query: String =
       """CREATE (pr:Product{id: 2, name: 'Product 2'})
         |WITH pr
@@ -918,19 +978,24 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureProduct2Query).consume()
-        })
+        }
+      )
 
     val partitionedQueryCountDf = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
-      .option("query",
+      .option(
+        "query",
         """
           |MATCH (p:Person)-[r:BOUGHT]->(pr:Product{name: 'Product 2'})
-          |RETURN p.name AS person, pr.name AS product, r.quantity AS quantity""".stripMargin)
+          |RETURN p.name AS person, pr.name AS product, r.quantity AS quantity""".stripMargin
+      )
       .option("partitions", "5")
-      .option("query.count",
+      .option(
+        "query.count",
         """
           |MATCH (p:Person)-[r:BOUGHT]->(pr:Product{name: 'Product 2'})
-          |RETURN count(p) AS count""".stripMargin)
+          |RETURN count(p) AS count""".stripMargin
+      )
       .load()
 
     assertEquals(6, partitionedQueryCountDf.rdd.getNumPartitions)
@@ -939,10 +1004,12 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
 
     val partitionedQueryCountLiteralDf = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
-      .option("query",
+      .option(
+        "query",
         """
           |MATCH (p:Person)-[r:BOUGHT]->(pr:Product{name: 'Product 2'})
-          |RETURN p.name AS person, pr.name AS product, r.quantity AS quantity""".stripMargin)
+          |RETURN p.name AS person, pr.name AS product, r.quantity AS quantity""".stripMargin
+      )
       .option("partitions", "5")
       .option("query.count", "50")
       .load()
@@ -967,7 +1034,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df: DataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
@@ -979,18 +1047,20 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
 
     val count = df.collectAsList()
       .asScala
-      .filter(row => row.getAs[Long]("<rel.id>") >= 0
-        && row.getAs[String]("<rel.type>") != null
-        && row.getAs[Double]("rel.when") >= 0
-        && row.getAs[Double]("rel.quantity") >= 0
-        && row.getAs[Long]("<source.id>") >= 0
-        && row.getAs[Long]("source.id") >= 0
-        && !row.getAs[Seq[String]]("<source.labels>").isEmpty
-        && row.getAs[String]("source.fullName") != null
-        && row.getAs[Long]("<target.id>") >= 0
-        && row.getAs[Double]("target.id") >= 0
-        && !row.getAs[Seq[String]]("<target.labels>").isEmpty
-        && row.getAs[String]("target.name") != null)
+      .filter(row =>
+        row.getAs[Long]("<rel.id>") >= 0
+          && row.getAs[String]("<rel.type>") != null
+          && row.getAs[Double]("rel.when") >= 0
+          && row.getAs[Double]("rel.quantity") >= 0
+          && row.getAs[Long]("<source.id>") >= 0
+          && row.getAs[Long]("source.id") >= 0
+          && !row.getAs[Seq[String]]("<source.labels>").isEmpty
+          && row.getAs[String]("source.fullName") != null
+          && row.getAs[Long]("<target.id>") >= 0
+          && row.getAs[Double]("target.id") >= 0
+          && !row.getAs[Seq[String]]("<target.labels>").isEmpty
+          && row.getAs[String]("target.name") != null
+      )
       .size
     assertEquals(total, count)
   }
@@ -1010,7 +1080,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df: DataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
@@ -1022,12 +1093,14 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
 
     val rows = df.collectAsList().asScala
     val count = rows
-      .filter(row => row.getAs[Long]("<rel.id>") >= 0
-        && row.getAs[String]("<rel.type>") != null
-        && row.getAs[Double]("rel.when") >= 0
-        && row.getAs[Double]("rel.quantity") >= 0
-        && row.getAs[Map[String, String]]("<source>") != null
-        && row.getAs[Map[String, String]]("<target>") != null)
+      .filter(row =>
+        row.getAs[Long]("<rel.id>") >= 0
+          && row.getAs[String]("<rel.type>") != null
+          && row.getAs[Double]("rel.when") >= 0
+          && row.getAs[Double]("rel.quantity") >= 0
+          && row.getAs[Map[String, String]]("<source>") != null
+          && row.getAs[Map[String, String]]("<target>") != null
+      )
       .size
     assertEquals(total, count)
 
@@ -1083,7 +1156,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df: DataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
@@ -1092,34 +1166,42 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
 
     val data = df.collect()
     val count = data.flatMap(row => row.getAs[Seq[Row]]("nodes"))
-      .filter(row => row.getAs[Long]("<id>") >= 0
-        && !row.getAs[Seq[String]]("<labels>").isEmpty
-        && !row.getAs[String]("fullName").isEmpty
-        && row.getAs[Long]("id") >= 0)
+      .filter(row =>
+        row.getAs[Long]("<id>") >= 0
+          && !row.getAs[Seq[String]]("<labels>").isEmpty
+          && !row.getAs[String]("fullName").isEmpty
+          && row.getAs[Long]("id") >= 0
+      )
       .size
     assertEquals(2, count)
 
     val dfString: DataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
-      .option("query",
+      .option(
+        "query",
         """MATCH (p:Person)-[b:BOUGHT]->(pr:Product)
-          |RETURN id(p) AS personId, id(pr) AS productId, {quantity: b.quantity, when: b.when} AS map""".stripMargin)
+          |RETURN id(p) AS personId, id(pr) AS productId, {quantity: b.quantity, when: b.when} AS map""".stripMargin
+      )
       .option("schema.strategy", "string")
       .load()
 
     val dataString = dfString.collect()
     val countString = dataString
-      .filter(row => !row.getAs[String]("personId").isEmpty
-        && !row.getAs[String]("productId").isEmpty
-        && !row.getAs[String]("map").isEmpty)
+      .filter(row =>
+        !row.getAs[String]("personId").isEmpty
+          && !row.getAs[String]("productId").isEmpty
+          && !row.getAs[String]("map").isEmpty
+      )
       .size
     assertEquals(100, countString)
 
     val dfRel: DataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
-      .option("query",
+      .option(
+        "query",
         """MATCH (p:Person)-[b:BOUGHT]->(pr:Product)
-          |RETURN b AS rel""".stripMargin)
+          |RETURN b AS rel""".stripMargin
+      )
       .load()
     val dataRel = dfRel.collect()
     val countRel = dataRel
@@ -1141,8 +1223,10 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
     SparkConnectorScalaSuiteIT.session()
       .writeTransaction(
         new TransactionWork[ResultSummary] {
-          override def execute(tx: Transaction): ResultSummary = tx.run("CREATE (i1:Instrument{name: 'Drums'}), (i2:Instrument{name: 'Guitar'})").consume()
-        })
+          override def execute(tx: Transaction): ResultSummary =
+            tx.run("CREATE (i1:Instrument{name: 'Drums'}), (i2:Instrument{name: 'Guitar'})").consume()
+        }
+      )
     val df = ss.read
       .format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
@@ -1170,8 +1254,10 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
     SparkConnectorScalaSuiteIT.session()
       .writeTransaction(
         new TransactionWork[ResultSummary] {
-          override def execute(tx: Transaction): ResultSummary = tx.run("CREATE (i1:Instrument{name: 'Drums', id: 1}), (i2:Instrument{name: 'Guitar', id: 2})").consume()
-        })
+          override def execute(tx: Transaction): ResultSummary =
+            tx.run("CREATE (i1:Instrument{name: 'Drums', id: 1}), (i2:Instrument{name: 'Guitar', id: 2})").consume()
+        }
+      )
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1201,13 +1287,16 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
-      .option("query",
+      .option(
+        "query",
         """MATCH (p:Person)-[b:BOUGHT]->(pr:Product)
-          |RETURN id(p) AS personId, id(pr) AS productId, {quantity: b.quantity, when: b.when} AS map, "some string" as someString, {anotherField: "201"} as map2""".stripMargin)
+          |RETURN id(p) AS personId, id(pr) AS productId, {quantity: b.quantity, when: b.when} AS map, "some string" as someString, {anotherField: "201"} as map2""".stripMargin
+      )
       .option("schema.strategy", "string")
       .load()
 
@@ -1219,9 +1308,11 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
   def testComplexReturnStatementNoValues(): Unit = {
     val df = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
-      .option("query",
+      .option(
+        "query",
         """MATCH (p:Person)-[b:BOUGHT]->(pr:Product)
-          |RETURN id(p) AS personId, id(pr) AS productId, {quantity: b.quantity, when: b.when} AS map, "some string" as someString, {anotherField: "201", and: 1} as map2""".stripMargin)
+          |RETURN id(p) AS personId, id(pr) AS productId, {quantity: b.quantity, when: b.when} AS map, "some string" as someString, {anotherField: "201", and: 1} as map2""".stripMargin
+      )
       .option("schema.strategy", "string")
       .load()
 
@@ -1241,8 +1332,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .load
       .orderBy("val")
     val data = df.collect()
-      .map(row => (row.getAs[String]("script"),
-        row.getAs[Long]("val")))
+      .map(row => (row.getAs[String]("script"), row.getAs[Long]("val")))
       .toSeq
     val expected = Seq(("foo", 1), ("foo", 2))
     assertEquals(expected, data)
@@ -1258,10 +1348,9 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("partitions", 2)
         .option("query.count", 2)
         .load()
-        .show()  // we need the action to be able to trigger the exception because of the changes in Spark 3
+        .show() // we need the action to be able to trigger the exception because of the changes in Spark 3
       org.junit.Assert.fail("Expected to throw an exception")
-    }
-    catch {
+    } catch {
       case iae: IllegalArgumentException => {
         assertTrue(iae.getMessage.equals("SKIP/LIMIT are not allowed at the end of the query"))
       }
@@ -1279,10 +1368,9 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .option("partitions", 2)
         .option("query.count", 2)
         .load()
-        .show()  // we need the action to be able to trigger the exception because of the changes in Spark 3
+        .show() // we need the action to be able to trigger the exception because of the changes in Spark 3
       org.junit.Assert.fail("Expected to throw an exception")
-    }
-    catch {
+    } catch {
       case iae: IllegalArgumentException => {
         assertTrue(iae.getMessage.equals("SKIP/LIMIT are not allowed at the end of the query"))
       }
@@ -1302,8 +1390,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
         .load()
         .show() // we need the action to be able to trigger the exception because of the changes in Spark 3
       org.junit.Assert.fail("Expected to throw an exception")
-    }
-    catch {
+    } catch {
       case iae: IllegalArgumentException => {
         assertTrue(iae.getMessage.equals("SKIP/LIMIT are not allowed at the end of the query"))
       }
@@ -1317,16 +1404,18 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       ss.read
         .format(classOf[DataSource].getName)
         .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
-        .option("query", "MATCH (n:Label)\n" +
-          "RETURN id(n) as id\n" +
-          "LIMIT 100")
+        .option(
+          "query",
+          "MATCH (n:Label)\n" +
+            "RETURN id(n) as id\n" +
+            "LIMIT 100"
+        )
         .option("partitions", 2)
         .option("query.count", 2)
         .load()
         .show() // we need the action to be able to trigger the exception because of the changes in Spark 3
       org.junit.Assert.fail("Expected to throw an exception")
-    }
-    catch {
+    } catch {
       case iae: IllegalArgumentException => {
         assertTrue(iae.getMessage.equals("SKIP/LIMIT are not allowed at the end of the query"))
       }
@@ -1350,7 +1439,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1376,7 +1466,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1403,7 +1494,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1432,7 +1524,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1463,7 +1556,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1494,7 +1588,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1525,7 +1620,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1554,7 +1650,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1583,7 +1680,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1605,8 +1703,10 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
     SparkConnectorScalaSuiteIT.session()
       .writeTransaction(
         new TransactionWork[ResultSummary] {
-          override def execute(tx: Transaction): ResultSummary = tx.run("CREATE (p:Person {name: 'Foo Bar', age: 8})").consume()
-        })
+          override def execute(tx: Transaction): ResultSummary =
+            tx.run("CREATE (p:Person {name: 'Foo Bar', age: 8})").consume()
+        }
+      )
 
     val df = ss.read.format(classOf[DataSource].getName)
       .schema(StructType(Seq(StructField("age", DataTypes.StringType)).toSeq))
@@ -1622,8 +1722,10 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
     SparkConnectorScalaSuiteIT.session()
       .writeTransaction(
         new TransactionWork[ResultSummary] {
-          override def execute(tx: Transaction): ResultSummary = tx.run("CREATE (p:Person {name: 'Foo Bar', age: 8})").consume()
-        })
+          override def execute(tx: Transaction): ResultSummary =
+            tx.run("CREATE (p:Person {name: 'Foo Bar', age: 8})").consume()
+        }
+      )
 
     val df = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
@@ -1643,8 +1745,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
     """.stripMargin
 
     SparkConnectorScalaSuiteIT.session()
-      .writeTransaction(
-        (tx: Transaction) => tx.run(fixtureQuery).consume())
+      .writeTransaction((tx: Transaction) => tx.run(fixtureQuery).consume())
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1669,8 +1770,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
     """.stripMargin
 
     SparkConnectorScalaSuiteIT.session()
-      .writeTransaction(
-        (tx: Transaction) => tx.run(fixtureQuery).consume())
+      .writeTransaction((tx: Transaction) => tx.run(fixtureQuery).consume())
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1690,14 +1790,16 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
   def test531(): Unit = {
     val dataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
-      .option("query",
+      .option(
+        "query",
         """
           |UNWIND [
           |  {first: '2022-06-14T10:02:28.192Z', second: null},
           |  {first: '2022-06-15T10:02:28.192Z', second: '2022-06-16T10:02:28.192Z'}
           |]AS event
           |RETURN datetime(event.first) AS first, datetime(event.second) AS second
-          |""".stripMargin)
+          |""".stripMargin
+      )
       .load()
 
     assertEquals(
@@ -1723,19 +1825,21 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
   def test531WithSchema(): Unit = {
     val schema = StructType(Array(
       StructField("first", DataTypes.TimestampType),
-      StructField("second", DataTypes.TimestampType),
+      StructField("second", DataTypes.TimestampType)
     ))
     // dataFrameWithSchema must with the proper data type
     val dataFrameWithSchema = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)
-      .option("query",
+      .option(
+        "query",
         """
           |UNWIND [
           |  {first: '2022-06-14T10:02:28.192Z', second: null},
           |  {first: '2022-06-15T10:02:28.192Z', second: '2022-06-16T10:02:28.192Z'}
           |] AS event
           |RETURN datetime(event.first) AS first, datetime(event.second) AS second
-          |""".stripMargin)
+          |""".stripMargin
+      )
       .schema(schema)
       .load()
     assertEquals(
@@ -1745,8 +1849,10 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
     assertEquals(
       List(
         (Timestamp.from(OffsetDateTime.parse("2022-06-14T10:02:28.192Z").toInstant), null),
-        (Timestamp.from(OffsetDateTime.parse("2022-06-15T10:02:28.192Z").toInstant),
-          Timestamp.from(OffsetDateTime.parse("2022-06-16T10:02:28.192Z").toInstant))
+        (
+          Timestamp.from(OffsetDateTime.parse("2022-06-15T10:02:28.192Z").toInstant),
+          Timestamp.from(OffsetDateTime.parse("2022-06-16T10:02:28.192Z").toInstant)
+        )
       ),
       dataFrameWithSchema.collect()
         .map(r => (r.getTimestamp(0), r.getTimestamp(1)))
@@ -1766,8 +1872,7 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
     """.stripMargin
 
     SparkConnectorScalaSuiteIT.session()
-      .writeTransaction(
-        (tx: Transaction) => tx.run(fixtureQuery).consume())
+      .writeTransaction((tx: Transaction) => tx.run(fixtureQuery).consume())
 
     val df = ss.read
       .format(classOf[DataSource].getName)
@@ -1790,7 +1895,8 @@ class DataSourceReaderTSE extends SparkConnectorScalaBaseTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(query).consume()
-        })
+        }
+      )
 
     ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteIT.server.getBoltUrl)

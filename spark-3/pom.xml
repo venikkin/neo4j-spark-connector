@@ -1,56 +1,88 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
-    <artifactId>neo4j-connector-apache-spark</artifactId>
-    <name>neo4j-connector-apache-spark-${spark.version}</name>
-    <description>Spark ${spark.version} for Neo4j Connector for Apache Spark using the binary Bolt Driver</description>
-
-    <packaging>jar</packaging>
-    <!-- don't update the following line -->
-    <!-- <version>${project.parent.version}</version> -->
-
     <parent>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-connector-apache-spark_parent</artifactId>
-        <version>5.3.1</version>
+        <version>5.3-SNAPSHOT</version>
     </parent>
-
+    <artifactId>neo4j-connector-apache-spark</artifactId>
+    <packaging>jar</packaging>
+    <name>neo4j-connector-apache-spark-${spark.version}</name>
+    <description>Spark ${spark.version} for Neo4j Connector for Apache Spark using the binary Bolt Driver</description>
     <properties>
-        <spark-packages.version/>
-        <spark-packages.groupId>neo4j-contrib</spark-packages.groupId>
         <spark-packages.artifactId>neo4j-spark-connector</spark-packages.artifactId>
+        <spark-packages.groupId>neo4j-contrib</spark-packages.groupId>
         <spark-packages.packageName>${spark-packages.artifactId}-${spark-packages.version}</spark-packages.packageName>
+        <spark-packages.version/>
     </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-connector-apache-spark_common</artifactId>
-            <version>${project.parent.version}</version>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j.driver</groupId>
+            <artifactId>neo4j-java-driver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_${scala.binary.version}</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_${scala.binary.version}</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-connector-apache-spark_test-support</artifactId>
-            <version>${project.parent.version}</version>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.binary.version}</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>3.7.1</version>
                 <executions>
                     <execution>
                         <id>bin</id>
-                        <phase>package</phase>
                         <goals>
                             <goal>single</goal>
                         </goals>
+                        <phase>package</phase>
                         <configuration>
                             <descriptors>
                                 <descriptor>src/main/assemblies/spark-packages-assembly.xml</descriptor>
@@ -63,5 +95,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

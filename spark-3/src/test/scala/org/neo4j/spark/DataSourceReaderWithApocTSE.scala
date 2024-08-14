@@ -1,17 +1,41 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.neo4j.spark
 
-import java.sql.Timestamp
-import java.time.{Instant, LocalDateTime, LocalTime, OffsetDateTime, OffsetTime, ZoneOffset}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.junit.Assert._
 import org.junit.Test
+import org.neo4j.driver.Transaction
+import org.neo4j.driver.TransactionWork
 import org.neo4j.driver.summary.ResultSummary
-import org.neo4j.driver.{Transaction, TransactionWork}
 
+import java.sql.Timestamp
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.OffsetDateTime
+import java.time.OffsetTime
+import java.time.ZoneOffset
 import java.util.TimeZone
+
 import scala.collection.JavaConverters._
-import scala.collection.mutable.{Seq, ArraySeq}
+import scala.collection.mutable.ArraySeq
+import scala.collection.mutable.Seq
 
 class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
 
@@ -82,7 +106,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
 
   @Test
   def testReadNodeWithLocalTime(): Unit = {
-    val df: DataFrame = initTest(s"CREATE (p:Person {aTime: localtime({hour:12, minute: 23, second: 0, millisecond: 294})})")
+    val df: DataFrame =
+      initTest(s"CREATE (p:Person {aTime: localtime({hour:12, minute: 23, second: 0, millisecond: 294})})")
 
     val result = df.select("aTime").collectAsList().get(0).getAs[GenericRowWithSchema](0)
 
@@ -111,7 +136,6 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
 
     val result = df.select("aTime").collectAsList().get(0).getTimestamp(0)
 
-
     assertEquals(Timestamp.from(LocalDateTime.parse(localDateTime).toInstant(ZoneOffset.UTC)), result)
   }
 
@@ -121,7 +145,6 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
     val df: DataFrame = initTest(s"CREATE (p:Person {aTime: datetime('$datetime')})")
 
     val result = df.select("aTime").collectAsList().get(0).getTimestamp(0)
-
 
     assertEquals(Timestamp.from(OffsetDateTime.parse(datetime).toInstant), result)
   }
@@ -220,7 +243,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
 
   @Test
   def testReadNodeWithLocalTimeArray(): Unit = {
-    val df: DataFrame = initTest(s"CREATE (p:Person {someTimes: [localtime({hour:12}), localtime({hour:1, minute: 3})]})")
+    val df: DataFrame =
+      initTest(s"CREATE (p:Person {someTimes: [localtime({hour:12}), localtime({hour:1, minute: 3})]})")
 
     val res = df.select("someTimes").collectAsList().get(0).getAs[Seq[GenericRowWithSchema]](0)
 
@@ -242,7 +266,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
 
   @Test
   def testReadNodeWithPointArray(): Unit = {
-    val df: DataFrame = initTest(s"CREATE (p:Person {locations: [point({x: 11, y: 33.111}), point({x: 22, y: 44.222})]})")
+    val df: DataFrame =
+      initTest(s"CREATE (p:Person {locations: [point({x: 11, y: 33.111}), point({x: 22, y: 44.222})]})")
 
     val res = df.select("locations").collectAsList().get(0).getAs[Seq[GenericRowWithSchema]](0)
 
@@ -259,7 +284,9 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
 
   @Test
   def testReadNodeWithGeoPointArray(): Unit = {
-    val df: DataFrame = initTest(s"CREATE (p:Person {locations: [point({longitude: 11, latitude: 33.111}), point({longitude: 22, latitude: 44.222})]})")
+    val df: DataFrame = initTest(
+      s"CREATE (p:Person {locations: [point({longitude: 11, latitude: 33.111}), point({longitude: 22, latitude: 44.222})]})"
+    )
 
     val res = df.select("locations").collectAsList().get(0).getAs[Seq[GenericRowWithSchema]](0)
 
@@ -276,7 +303,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
 
   @Test
   def testReadNodeWithPoint3DArray(): Unit = {
-    val df: DataFrame = initTest(s"CREATE (p:Person {locations: [point({x: 11, y: 33.111, z: 12}), point({x: 22, y: 44.222, z: 99.1})]})")
+    val df: DataFrame =
+      initTest(s"CREATE (p:Person {locations: [point({x: 11, y: 33.111, z: 12}), point({x: 22, y: 44.222, z: 99.1})]})")
 
     val res = df.select("locations").collectAsList().get(0).getAs[Seq[GenericRowWithSchema]](0)
 
@@ -587,7 +615,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteWithApocIT.server.getBoltUrl)
@@ -616,7 +645,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteWithApocIT.server.getBoltUrl)
@@ -664,7 +694,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df: DataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteWithApocIT.server.getBoltUrl)
@@ -676,18 +707,20 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
 
     val count = df.collectAsList()
       .asScala
-      .filter(row => row.getAs[Long]("<rel.id>") >= 0
-        && row.getAs[String]("<rel.type>") != null
-        && row.getAs[Double]("rel.when") >= 0
-        && row.getAs[Double]("rel.quantity") >= 0
-        && row.getAs[Long]("<source.id>") >= 0
-        && row.getAs[Long]("source.id") >= 0
-        && !row.getAs[Seq[String]]("<source.labels>").isEmpty
-        && row.getAs[String]("source.fullName") != null
-        && row.getAs[Long]("<target.id>") >= 0
-        && row.getAs[Double]("target.id") >= 0
-        && !row.getAs[Seq[String]]("<target.labels>").isEmpty
-        && row.getAs[String]("target.name") != null)
+      .filter(row =>
+        row.getAs[Long]("<rel.id>") >= 0
+          && row.getAs[String]("<rel.type>") != null
+          && row.getAs[Double]("rel.when") >= 0
+          && row.getAs[Double]("rel.quantity") >= 0
+          && row.getAs[Long]("<source.id>") >= 0
+          && row.getAs[Long]("source.id") >= 0
+          && !row.getAs[Seq[String]]("<source.labels>").isEmpty
+          && row.getAs[String]("source.fullName") != null
+          && row.getAs[Long]("<target.id>") >= 0
+          && row.getAs[Double]("target.id") >= 0
+          && !row.getAs[Seq[String]]("<target.labels>").isEmpty
+          && row.getAs[String]("target.name") != null
+      )
       .size
     assertEquals(total, count)
   }
@@ -707,7 +740,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df: DataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteWithApocIT.server.getBoltUrl)
@@ -719,12 +753,14 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
 
     val rows = df.collectAsList().asScala
     val count = rows
-      .filter(row => row.getAs[Long]("<rel.id>") >= 0
-        && row.getAs[String]("<rel.type>") != null
-        && row.getAs[Double]("rel.when") >= 0
-        && row.getAs[Double]("rel.quantity") >= 0
-        && row.getAs[Map[String, String]]("<source>") != null
-        && row.getAs[Map[String, String]]("<target>") != null)
+      .filter(row =>
+        row.getAs[Long]("<rel.id>") >= 0
+          && row.getAs[String]("<rel.type>") != null
+          && row.getAs[Double]("rel.when") >= 0
+          && row.getAs[Double]("rel.quantity") >= 0
+          && row.getAs[Map[String, String]]("<source>") != null
+          && row.getAs[Map[String, String]]("<target>") != null
+      )
       .size
     assertEquals(total, count)
 
@@ -754,7 +790,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df: DataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteWithApocIT.server.getBoltUrl)
@@ -784,7 +821,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df: DataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteWithApocIT.server.getBoltUrl)
@@ -793,19 +831,20 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
       .sort("name")
 
     val cols = df.columns.toSeq.sorted
-    val expectedCols = Seq("name", "born", "actor",
-        "soccerPlayer", "writer", "<id>", "<labels>")
+    val expectedCols = Seq("name", "born", "actor", "soccerPlayer", "writer", "<id>", "<labels>")
       .sorted
     assertEquals(expectedCols, cols)
 
     val data = df.collect().toSeq
-      .map(row => expectedCols.filterNot(_ == "<id>").map(col => {
-        row.getAs[Any](col) match {
-          case array: Array[String] => array.toList
-          case null => null
-          case other: Any => other
-        }
-      }))
+      .map(row =>
+        expectedCols.filterNot(_ == "<id>").map(col => {
+          row.getAs[Any](col) match {
+            case array: Array[String] => array.toList
+            case null                 => null
+            case other: Any           => other
+          }
+        })
+      )
     val expectedData = Seq(
       Seq(ArraySeq("Person", "Actor"), true, 1964, "Keanu Reeves", null, null),
       Seq(ArraySeq("Person", "Writer"), null, 1928, "Philip K. Dick", null, true),
@@ -826,7 +865,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val df: DataFrame = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteWithApocIT.server.getBoltUrl)
@@ -840,13 +880,15 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
     assertEquals(expectedCols, cols)
 
     val data = df.collect().toSeq
-      .map(row => expectedCols.filterNot(_ == "<id>").map(col => {
-        row.getAs[Any](col) match {
-          case array: Array[String] => array.toList
-          case null => null
-          case other: Any => other
-        }
-      }))
+      .map(row =>
+        expectedCols.filterNot(_ == "<id>").map(col => {
+          row.getAs[Any](col) match {
+            case array: Array[String] => array.toList
+            case null                 => null
+            case other: Any           => other
+          }
+        })
+      )
     val expectedData = Seq(
       Seq(ArraySeq("Person"), "25"),
       Seq(ArraySeq("Person", "Player"), "hello"),
@@ -871,12 +913,14 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
     SparkConnectorScalaSuiteWithApocIT.driver.session()
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixture2Query).consume()
-        })
+        }
+      )
 
     val partitionedDf = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteWithApocIT.server.getBoltUrl)
@@ -899,7 +943,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(fixtureQuery).consume()
-        })
+        }
+      )
 
     val partitionedDf = ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteWithApocIT.server.getBoltUrl)
@@ -935,7 +980,8 @@ class DataSourceReaderWithApocTSE extends SparkConnectorScalaBaseWithApocTSE {
       .writeTransaction(
         new TransactionWork[ResultSummary] {
           override def execute(tx: Transaction): ResultSummary = tx.run(query).consume()
-        })
+        }
+      )
 
     ss.read.format(classOf[DataSource].getName)
       .option("url", SparkConnectorScalaSuiteWithApocIT.server.getBoltUrl)
