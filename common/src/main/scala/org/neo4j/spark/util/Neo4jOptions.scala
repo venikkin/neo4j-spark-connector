@@ -22,6 +22,7 @@ import org.apache.spark.sql.SparkSession
 import org.jetbrains.annotations.TestOnly
 import org.neo4j.driver.Config.TrustStrategy
 import org.neo4j.driver._
+import org.neo4j.driver.exceptions.Neo4jException
 import org.neo4j.driver.net.ServerAddress
 import org.neo4j.driver.net.ServerAddressResolver
 import org.neo4j.spark.util.Neo4jImplicits.StringMapImplicits
@@ -219,14 +220,14 @@ class Neo4jOptions(private val options: java.util.Map[String, String]) extends S
     Neo4jNodeMetadata(labels, nodeKeys, nodeProps)
   }
 
-  val transactionMetadata: Neo4jTransactionMetadata = initNeo4jTransactionMetadata()
+  val transactionSettings: Neo4jTransactionSettings = initNeo4jTransactionSettings()
 
   val script: Array[String] = getParameter(SCRIPT)
     .split(";")
     .map(_.trim)
     .filterNot(_.isEmpty)
 
-  private def initNeo4jTransactionMetadata(): Neo4jTransactionMetadata = {
+  private def initNeo4jTransactionSettings(): Neo4jTransactionSettings = {
     val retries = getParameter(TRANSACTION_RETRIES, DEFAULT_TRANSACTION_RETRIES.toString).toInt
     val failOnTransactionCodes = getParameter(TRANSACTION_CODES_FAIL, DEFAULT_EMPTY)
       .split(",")
@@ -235,7 +236,7 @@ class Neo4jOptions(private val options: java.util.Map[String, String]) extends S
       .toSet
     val batchSize = getParameter(BATCH_SIZE, DEFAULT_BATCH_SIZE.toString).toInt
     val retryTimeout = getParameter(TRANSACTION_RETRY_TIMEOUT, DEFAULT_TRANSACTION_RETRY_TIMEOUT.toString).toInt
-    Neo4jTransactionMetadata(retries, failOnTransactionCodes, batchSize, retryTimeout)
+    Neo4jTransactionSettings(retries, failOnTransactionCodes, batchSize, retryTimeout)
   }
 
   val relationshipMetadata: Neo4jRelationshipMetadata = initNeo4jRelationshipMetadata()
@@ -356,12 +357,21 @@ case class Neo4jSchemaMetadata(
   mapGroupDuplicateKeys: Boolean
 )
 
-case class Neo4jTransactionMetadata(
+case class Neo4jTransactionSettings(
   retries: Int,
   failOnTransactionCodes: Set[String],
   batchSize: Int,
   retryTimeout: Long
-)
+) {
+
+  def shouldFailOn(exception: Throwable): Boolean = {
+    exception match {
+      case e: Neo4jException => failOnTransactionCodes.contains(e.code())
+      case _                 => false
+    }
+  }
+
+}
 
 case class Neo4jNodeMetadata(labels: Seq[String], nodeKeys: Map[String, String], properties: Map[String, String]) {
   def includesProperty(name: String): Boolean = nodeKeys.contains(name) || properties.contains(name)
