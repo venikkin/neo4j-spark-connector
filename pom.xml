@@ -69,6 +69,7 @@
         <scala.binary.version>2.12</scala.binary.version>
         <scala.version>2.12.20</scala.version>
         <slf4j-api.version>2.0.17</slf4j-api.version>
+        <snyk-plugin.version>2.3.0</snyk-plugin.version>
         <sortpom-maven-plugin.version>4.0.0</sortpom-maven-plugin.version>
         <spark.version>3.5.6</spark.version>
         <spotless-maven-plugin.version>2.46.1</spotless-maven-plugin.version>
@@ -565,6 +566,17 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>io.snyk</groupId>
+                <artifactId>snyk-maven-plugin</artifactId>
+                <version>${snyk-plugin.version}</version>
+                <configuration>
+                    <apiToken>${env.SNYK_TOKEN}</apiToken>
+                    <args>
+                        <arg>--severity-threshold=high</arg>
+                    </args>
+                </configuration>
             </plugin>
         </plugins>
     </build>
