@@ -575,6 +575,9 @@
                     <apiToken>${env.SNYK_TOKEN}</apiToken>
                     <args>
                         <arg>--severity-threshold=high</arg>
+                        <arg>--maven-aggregate-project</arg>
+                        <arg>--file=effective-pom.xml</arg>
+                        <arg>--package-manager=maven</arg>
                     </args>
                 </configuration>
             </plugin>
